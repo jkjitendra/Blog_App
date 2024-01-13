@@ -3,6 +3,7 @@ package com.jk.blog.controller;
 import com.jk.blog.dto.APIResponse;
 import com.jk.blog.dto.UserDTO;
 import com.jk.blog.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +18,7 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/")
-    public ResponseEntity<UserDTO> createUser(@RequestBody UserDTO userRequestBody) {
+    public ResponseEntity<UserDTO> createUser(@Valid @RequestBody UserDTO userRequestBody) {
         UserDTO createdUserDTO = this.userService.createUser(userRequestBody);
         return new ResponseEntity<>(createdUserDTO, HttpStatus.CREATED);
     }
@@ -26,13 +27,14 @@ public class UserController {
     public ResponseEntity<List<UserDTO>> getAllUser() {
         return ResponseEntity.ok(this.userService.getAllUsers());
     }
+
     @GetMapping("/{userId}")
     public ResponseEntity<UserDTO> getUser(@PathVariable Integer userId) {
         return ResponseEntity.ok(this.userService.getUserById(userId));
     }
 
     @PutMapping("/{userId}")
-    public ResponseEntity<UserDTO> updateUser(@RequestBody UserDTO userRequestBody, @PathVariable("userId") Integer uId) {
+    public ResponseEntity<UserDTO> updateUser(@Valid @RequestBody UserDTO userRequestBody, @PathVariable("userId") Integer uId) {
         UserDTO updatedUser = this.userService.updateUser(userRequestBody, uId);
         return ResponseEntity.ok(updatedUser);
     }
