@@ -28,7 +28,6 @@ public class User {
     private String password;
     private Boolean active;
 
-
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Post> posts = new ArrayList<>();
 
