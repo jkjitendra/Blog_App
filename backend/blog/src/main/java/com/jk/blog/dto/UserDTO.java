@@ -13,7 +13,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class UserDTO {
-    private int id;
+    private Long id;
     @NotEmpty
     @Size(min = 4, message = "name should be greater than 4")
     private String name;
@@ -24,5 +24,5 @@ public class UserDTO {
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$", message = "Password should be combination of numbers, lowercase, uppercase, special Characters")
     private String password;
     @JsonIgnore
-    private boolean active;
+    private Boolean active;
 }

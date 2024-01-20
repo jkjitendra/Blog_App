@@ -21,21 +21,6 @@ public class UserServiceImpl implements UserService {
     private ModelMapper modelMapper;
 
     @Override
-    public UserDTO getUserById(Integer userId) {
-        User user = this.userRepository
-                        .findById(userId)
-                        .orElseThrow(() -> new ResourceNotFoundException("User", "Id", userId));
-
-        return this.userToDTO(user);
-    }
-
-    @Override
-    public List<UserDTO> getAllUsers() {
-        List<User> usersList = this.userRepository.findAll();
-        return usersList.stream().map(this::userToDTO).collect(Collectors.toList());
-    }
-
-    @Override
     public UserDTO createUser(UserDTO userDTO) {
         User user = this.dtoToUser(userDTO);
         user.setActive(true);
@@ -46,7 +31,24 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO updateUser(UserDTO userDTO, Integer userId) {
+    public UserDTO getUserById(Long userId) {
+        User user = this.userRepository
+                        .findById(userId)
+                        .orElseThrow(() -> new ResourceNotFoundException("User", "Id", userId));
+
+        return this.userToDTO(user);
+    }
+
+    @Override
+    public List<UserDTO> getAllUsers() {
+        List<User> usersList = this.userRepository.findAll();
+        return usersList.stream()
+                        .map(this::userToDTO)
+                        .collect(Collectors.toList());
+    }
+
+    @Override
+    public UserDTO updateUser(UserDTO userDTO, Long userId) {
         User user = this.userRepository
                         .findById(userId)
                         .orElseThrow(() -> new ResourceNotFoundException("User", "Id", userId));
@@ -59,7 +61,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void deleteUser(Integer userId) {
+    public void deleteUser(Long userId) {
         User user = this.userRepository
                         .findById(userId)
                         .orElseThrow(() -> new ResourceNotFoundException("User", "Id", userId));
