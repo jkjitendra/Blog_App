@@ -28,7 +28,23 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryDTO updateCategory(CategoryDTO categoryDTO, Integer categoryId) {
+    public CategoryDTO getCategoryById(Long categoryId) {
+        Category category = this.categoryRepository
+                                .findById(categoryId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Category", "Category Id", categoryId));
+        return this.modelMapper.map(category, CategoryDTO.class);
+    }
+
+    @Override
+    public List<CategoryDTO> getAllCategories() {
+        List<Category> categoryList = this.categoryRepository.findAll();
+        return categoryList.stream()
+                           .map((eachCategory) -> this.modelMapper.map(eachCategory, CategoryDTO.class))
+                           .collect(Collectors.toList());
+    }
+
+    @Override
+    public CategoryDTO updateCategory(CategoryDTO categoryDTO, Long categoryId) {
         Category category = this.categoryRepository
                                 .findById(categoryId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Category", "Category Id", categoryId));
@@ -39,24 +55,10 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryDTO getCategoryById(Integer categoryId) {
+    public void deleteCategory(Long categoryId) {
         Category category = this.categoryRepository
-                .findById(categoryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Category", "Category Id", categoryId));
-        return this.modelMapper.map(category, CategoryDTO.class);
-    }
-
-    @Override
-    public List<CategoryDTO> getAllCategories() {
-        List<Category> categoryList = this.categoryRepository.findAll();
-        return categoryList.stream().map((eachCategory) -> this.modelMapper.map(eachCategory, CategoryDTO.class)).collect(Collectors.toList());
-    }
-
-    @Override
-    public void deleteCategory(Integer categoryId) {
-        Category category = this.categoryRepository
-                .findById(categoryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Category", "Category Id", categoryId));
+                                .findById(categoryId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Category", "Category Id", categoryId));
         this.categoryRepository.delete(category);
     }
 }

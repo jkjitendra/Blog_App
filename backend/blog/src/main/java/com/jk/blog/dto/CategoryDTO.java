@@ -11,7 +11,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class CategoryDTO {
 
-    private  Integer categoryId;
+    private  Long categoryId;
     @NotBlank
     @Size(min = 4, message = "Min Size of Category Title is 4")
     private  String categoryTitle;
