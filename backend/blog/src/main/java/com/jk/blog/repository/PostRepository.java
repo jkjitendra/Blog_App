@@ -1,6 +1,5 @@
 package com.jk.blog.repository;
 
-import com.jk.blog.dto.PostDTO;
 import com.jk.blog.entity.Category;
 import com.jk.blog.entity.Post;
 import com.jk.blog.entity.User;

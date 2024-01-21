@@ -1,7 +1,8 @@
 package com.jk.blog.controller;
 
 import com.jk.blog.dto.APIResponse;
-import com.jk.blog.dto.UserDTO;
+import com.jk.blog.dto.UserRequestBody;
+import com.jk.blog.dto.UserResponseBody;
 import com.jk.blog.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,24 +19,24 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/")
-    public ResponseEntity<UserDTO> createUser(@Valid @RequestBody UserDTO userRequestBody) {
-        UserDTO createdUserDTO = this.userService.createUser(userRequestBody);
-        return new ResponseEntity<>(createdUserDTO, HttpStatus.CREATED);
+    public ResponseEntity<UserResponseBody> createUser(@Valid @RequestBody UserRequestBody userRequestBody) {
+        UserResponseBody createdUserRequestBody = this.userService.createUser(userRequestBody);
+        return new ResponseEntity<>(createdUserRequestBody, HttpStatus.CREATED);
     }
 
     @GetMapping("/")
-    public ResponseEntity<List<UserDTO>> getAllUser() {
+    public ResponseEntity<List<UserResponseBody>> getAllUser() {
         return ResponseEntity.ok(this.userService.getAllUsers());
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<UserDTO> getUser(@PathVariable Long userId) {
+    public ResponseEntity<UserResponseBody> getUser(@PathVariable Long userId) {
         return ResponseEntity.ok(this.userService.getUserById(userId));
     }
 
     @PutMapping("/{userId}")
-    public ResponseEntity<UserDTO> updateUser(@Valid @RequestBody UserDTO userRequestBody, @PathVariable("userId") Long uId) {
-        UserDTO updatedUser = this.userService.updateUser(userRequestBody, uId);
+    public ResponseEntity<UserResponseBody> updateUser(@Valid @RequestBody UserRequestBody userRequestBody, @PathVariable("userId") Long uId) {
+        UserResponseBody updatedUser = this.userService.updateUser(userRequestBody, uId);
         return ResponseEntity.ok(updatedUser);
     }
 

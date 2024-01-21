@@ -21,8 +21,8 @@ public class Post {
     private String postTitle;
     @Lob
     private String postContent;
-    private String imageName;
-    private String videoName;
+    private String imageUrl;
+    private String videoUrl;
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdDate;
     @Temporal(TemporalType.TIMESTAMP)

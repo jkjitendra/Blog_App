@@ -1,19 +1,19 @@
 package com.jk.blog.dto;
 
-
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@NoArgsConstructor
+
 @Getter
 @Setter
-public class PostDTO {
+@NoArgsConstructor
+public class PostResponseBody {
 
     private String title;
     private String content;
-    private String imageName;
-    private String videoName;
+    private String imageUrl;
+    private String videoUrl;
     private Long userId;
     private Long categoryId;
     private Boolean isLive;

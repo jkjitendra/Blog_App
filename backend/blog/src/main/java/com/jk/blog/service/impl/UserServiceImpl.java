@@ -1,6 +1,7 @@
 package com.jk.blog.service.impl;
 
-import com.jk.blog.dto.UserDTO;
+import com.jk.blog.dto.UserRequestBody;
+import com.jk.blog.dto.UserResponseBody;
 import com.jk.blog.entity.User;
 import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.repository.UserRepository;
@@ -21,17 +22,17 @@ public class UserServiceImpl implements UserService {
     private ModelMapper modelMapper;
 
     @Override
-    public UserDTO createUser(UserDTO userDTO) {
-        User user = this.dtoToUser(userDTO);
+    public UserResponseBody createUser(UserRequestBody userRequestBody) {
+        User user = this.dtoToUser(userRequestBody);
         user.setActive(true);
         User savedUser = this.userRepository.save(user);
-        UserDTO createdUserDto = this.userToDTO(savedUser);
-        createdUserDto.setActive(true);
-        return createdUserDto;
+        UserResponseBody createdUserResponseBody = this.userToDTO(savedUser);
+        createdUserResponseBody.setActive(true);
+        return createdUserResponseBody;
     }
 
     @Override
-    public UserDTO getUserById(Long userId) {
+    public UserResponseBody getUserById(Long userId) {
         User user = this.userRepository
                         .findById(userId)
                         .orElseThrow(() -> new ResourceNotFoundException("User", "Id", userId));
@@ -40,7 +41,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserDTO> getAllUsers() {
+    public List<UserResponseBody> getAllUsers() {
         List<User> usersList = this.userRepository.findAll();
         return usersList.stream()
                         .map(this::userToDTO)
@@ -48,12 +49,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO updateUser(UserDTO userDTO, Long userId) {
+    public UserResponseBody updateUser(UserRequestBody userRequestBody, Long userId) {
         User user = this.userRepository
                         .findById(userId)
                         .orElseThrow(() -> new ResourceNotFoundException("User", "Id", userId));
-        user.setName(userDTO.getName());
-        user.setEmail(userDTO.getEmail());
+        user.setName(userRequestBody.getName());
+        user.setEmail(userRequestBody.getEmail());
 //        user.setPassword(userDTO.getPassword());
 //        user.setActive(userDTO.getActive());
         User updatedUser = this.userRepository.save(user);
@@ -68,8 +69,8 @@ public class UserServiceImpl implements UserService {
         this.userRepository.delete(user);
     }
 
-    public User dtoToUser(UserDTO userDTO) {
-        return this.modelMapper.map(userDTO, User.class);
+    public User dtoToUser(UserRequestBody userRequestBody) {
+        return this.modelMapper.map(userRequestBody, User.class);
 //        user.setId(userDTO.getId());
 //        user.setName(userDTO.getName());
 //        user.setEmail(userDTO.getEmail());
@@ -78,8 +79,8 @@ public class UserServiceImpl implements UserService {
 //        return user;
     }
 
-    public UserDTO userToDTO(User user) {
-        return this.modelMapper.map(user, UserDTO.class);
+    public UserResponseBody userToDTO(User user) {
+        return this.modelMapper.map(user, UserResponseBody.class);
 //        userDTO.setId(user.getId());
 //        userDTO.setName(user.getName());
 //        userDTO.setEmail(user.getEmail());
