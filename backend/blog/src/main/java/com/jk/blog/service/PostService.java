@@ -1,18 +1,19 @@
 package com.jk.blog.service;
 
-import com.jk.blog.dto.PostDTO;
-import com.jk.blog.entity.Post;
+import com.jk.blog.dto.PageableResponse;
+import com.jk.blog.dto.PostRequestBody;
+import com.jk.blog.dto.PostResponseBody;
 
 import java.util.List;
 
 public interface PostService {
-    PostDTO createPost(PostDTO postDTO);
-    PostDTO updatePost(PostDTO postDTO, Long postId);
+    PostResponseBody createPost(PostRequestBody postRequestBody);
+    PostResponseBody updatePost(PostRequestBody postRequestBody, Long postId);
     void deletePost(Long postId);
-    List<PostDTO> getAllPost();
-    PostDTO getPostById(Long postId);
-    List<PostDTO> getPostsByUser(Long userId);
-    List<PostDTO> getPostsByCategory(Long categoryId);
-    List<PostDTO> searchPostsByTitle(String keyword);
+    PageableResponse<PostResponseBody> getAllPost(Integer pageNumber, Integer pageSize, String sortBy, String sortDirection);
+    PostResponseBody getPostById(Long postId);
+    List<PostResponseBody> getPostsByUser(Long userId);
+    List<PostResponseBody> getPostsByCategory(Long categoryId);
+    List<PostResponseBody> searchPostsByTitle(String keyword);
 
 }
