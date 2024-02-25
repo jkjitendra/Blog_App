@@ -12,9 +12,14 @@ import java.util.List;
 public class PageableResponse<T> {
 
     private List<T> content;
+
     private int pageNumber;
+
     private int size;
+
     private long totalElements;
+
     private int totalPages;
+
     private boolean lastPage;
 }
