@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,15 +19,28 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
+
     @Column(unique = true, nullable = false)
     private String userName;
+
     @Column(nullable = false, length = 50)
     private String name;
+
     @Column(nullable = false)
     private String email;
+
     @Column(nullable = false)
     private String password;
+
+    @Column(nullable = false)
+    private String mobile;
+
+    @Column(nullable = false)
+    private String countryName;
+
     private Boolean active;
+//    private String resetToken;
+//    private LocalDateTime resetTokenExpiryDate;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Post> posts = new ArrayList<>();
@@ -34,6 +48,6 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Comment> comments = new ArrayList<>();
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private Profile profile;
 }

@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.2.1</version>
+		<version>3.2.3</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.jk</groupId>
@@ -25,10 +25,26 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
+<!--		&lt;!&ndash; Spring Boot Starter Security for authentication and password encoding &ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.boot</groupId>-->
+<!--			<artifactId>spring-boot-starter-security</artifactId>-->
+<!--		</dependency>-->
 		<!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-validation -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+		<!-- Spring Boot Starter Mail for email sending capabilities -->
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.boot</groupId>-->
+<!--			<artifactId>spring-boot-starter-mail</artifactId>-->
+<!--		</dependency>-->
+		<!-- https://mvnrepository.com/artifact/com.googlecode.libphonenumber/libphonenumber -->
+		<dependency>
+			<groupId>com.googlecode.libphonenumber</groupId>
+			<artifactId>libphonenumber</artifactId>
+			<version>8.12.48</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

@@ -10,8 +10,16 @@ import lombok.Setter;
 public class UserResponseBody {
 
     private Long id;
+
     private String name;
+
     private String userName;
+
     private String email;
+
     private Boolean active;
+
+    private String mobile;
+
+    private String countryName;
 }
