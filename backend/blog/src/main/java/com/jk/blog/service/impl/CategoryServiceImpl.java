@@ -8,6 +8,7 @@ import com.jk.blog.service.CategoryService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,6 +22,7 @@ public class CategoryServiceImpl implements CategoryService {
     private ModelMapper modelMapper;
 
     @Override
+    @Transactional
     public CategoryDTO createCategory(CategoryDTO categoryDTO) {
         Category category = this.modelMapper.map(categoryDTO, Category.class);
         Category savedCategory = this.categoryRepository.save(category);
@@ -28,6 +30,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CategoryDTO getCategoryById(Long categoryId) {
         Category category = this.categoryRepository
                                 .findById(categoryId)
@@ -36,6 +39,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<CategoryDTO> getAllCategories() {
         List<Category> categoryList = this.categoryRepository.findAll();
         return categoryList.stream()
@@ -44,10 +48,11 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional
     public CategoryDTO updateCategory(CategoryDTO categoryDTO, Long categoryId) {
         Category category = this.categoryRepository
                                 .findById(categoryId)
-                                .orElseThrow(() -> new ResourceNotFoundException("Category", "Category Id", categoryId));
+                                .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryId", categoryId));
         category.setCategoryTitle(categoryDTO.getCategoryTitle());
         category.setCategoryDescription(categoryDTO.getCategoryDescription());
         Category updatedCategory = this.categoryRepository.save(category);
@@ -55,10 +60,11 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional
     public void deleteCategory(Long categoryId) {
         Category category = this.categoryRepository
                                 .findById(categoryId)
-                                .orElseThrow(() -> new ResourceNotFoundException("Category", "Category Id", categoryId));
+                                .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryId", categoryId));
         this.categoryRepository.delete(category);
     }
 }
