@@ -43,10 +43,8 @@ public class UserServiceImpl implements UserService {
         if (!PhoneNumberValidationUtil.isValidPhoneNumber(userRequestBody.getMobile(), regionCode)) {
             throw new IllegalArgumentException("Invalid Mobile Number Format");
         }
-        PhoneNumberUtil phoneNumberUtil = PhoneNumberUtil.getInstance();
-        String countryCallingCode = String.valueOf(phoneNumberUtil.getCountryCodeForRegion(regionCode));
         User user = this.dtoToUser(userRequestBody);
-        user.setMobile(("+" + countryCallingCode + userRequestBody.getMobile())); // example +918888881212 => +, countryCode=91, mobile=8888881212
+        user.setMobile(PhoneNumberValidationUtil.getPhoneNumber(regionCode, userRequestBody.getMobile()));
         user.setActive(true);
 
         Profile profile = new Profile();
