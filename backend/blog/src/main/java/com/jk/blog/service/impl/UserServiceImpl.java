@@ -1,5 +1,6 @@
 package com.jk.blog.service.impl;
 
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.jk.blog.dto.UserRequestBody;
 import com.jk.blog.dto.UserResponseBody;
 import com.jk.blog.entity.Profile;
@@ -43,6 +44,7 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Invalid Mobile Number Format");
         }
         User user = this.dtoToUser(userRequestBody);
+        user.setMobile(PhoneNumberValidationUtil.getPhoneNumber(regionCode, userRequestBody.getMobile()));
         user.setActive(true);
 
         Profile profile = new Profile();
@@ -84,15 +86,14 @@ public class UserServiceImpl implements UserService {
             user.setName(userRequestBody.getName());
         if(userRequestBody.getEmail() != null)
             user.setEmail(userRequestBody.getEmail());
-        if(userRequestBody.getMobile() != null){
+        if(userRequestBody.getMobile() != null && userRequestBody.getCountryName() != null){
             String regionCode = CountryToRegionCodeUtil.getCountryISOCode(userRequestBody.getCountryName());
             if (!PhoneNumberValidationUtil.isValidPhoneNumber(userRequestBody.getMobile(), regionCode)) {
                 throw new IllegalArgumentException("Invalid Mobile Number Format");
             }
+            user.setCountryName(userRequestBody.getCountryName());
             user.setMobile(userRequestBody.getMobile());
         }
-        if(userRequestBody.getCountryName() != null)
-            user.setCountryName(userRequestBody.getCountryName());
 //        user.setPassword(userDTO.getPassword());
 //        user.setActive(userDTO.getActive());
         User updatedUser = this.userRepository.save(user);
