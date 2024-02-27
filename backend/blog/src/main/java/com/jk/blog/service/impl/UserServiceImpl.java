@@ -1,5 +1,6 @@
 package com.jk.blog.service.impl;
 
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.jk.blog.dto.UserRequestBody;
 import com.jk.blog.dto.UserResponseBody;
 import com.jk.blog.entity.Profile;
@@ -42,7 +43,10 @@ public class UserServiceImpl implements UserService {
         if (!PhoneNumberValidationUtil.isValidPhoneNumber(userRequestBody.getMobile(), regionCode)) {
             throw new IllegalArgumentException("Invalid Mobile Number Format");
         }
+        PhoneNumberUtil phoneNumberUtil = PhoneNumberUtil.getInstance();
+        String countryCallingCode = String.valueOf(phoneNumberUtil.getCountryCodeForRegion(regionCode));
         User user = this.dtoToUser(userRequestBody);
+        user.setMobile(("+" + countryCallingCode + userRequestBody.getMobile())); // example +918888881212 => +, countryCode=91, mobile=8888881212
         user.setActive(true);
 
         Profile profile = new Profile();
@@ -84,15 +88,14 @@ public class UserServiceImpl implements UserService {
             user.setName(userRequestBody.getName());
         if(userRequestBody.getEmail() != null)
             user.setEmail(userRequestBody.getEmail());
-        if(userRequestBody.getMobile() != null){
+        if(userRequestBody.getMobile() != null && userRequestBody.getCountryName() != null){
             String regionCode = CountryToRegionCodeUtil.getCountryISOCode(userRequestBody.getCountryName());
             if (!PhoneNumberValidationUtil.isValidPhoneNumber(userRequestBody.getMobile(), regionCode)) {
                 throw new IllegalArgumentException("Invalid Mobile Number Format");
             }
+            user.setCountryName(userRequestBody.getCountryName());
             user.setMobile(userRequestBody.getMobile());
         }
-        if(userRequestBody.getCountryName() != null)
-            user.setCountryName(userRequestBody.getCountryName());
 //        user.setPassword(userDTO.getPassword());
 //        user.setActive(userDTO.getActive());
         User updatedUser = this.userRepository.save(user);
