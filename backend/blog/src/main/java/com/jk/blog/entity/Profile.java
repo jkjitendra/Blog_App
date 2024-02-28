@@ -1,6 +1,7 @@
 package com.jk.blog.entity;
 
 import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
+import com.vladmihalcea.hibernate.type.json.JsonStringType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,12 +21,12 @@ public class Profile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long profileId;
 
-    private String mobile;
     private String address;
     private String about;
-    private String image;
-    @Type(JsonBinaryType.class)
-    @Column(columnDefinition = "json", nullable = false, updatable = true, name = "socialMediaLinks")
+    private String imageUrl;
+
+    @Type(JsonStringType.class)
+    @Column(columnDefinition = "json", nullable = true, updatable = true, name = "socialMediaLinks")
     private List<String> socialMediaLinks;
 
     @OneToOne
