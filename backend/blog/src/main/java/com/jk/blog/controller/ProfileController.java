@@ -58,7 +58,7 @@ public class ProfileController {
 
     @PatchMapping(value = "/user/{userId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> patchProfile(@PathVariable Long userId,
-                                          @RequestPart("updates") String updatesJson,
+                                          @RequestPart("profile") String updatesJson,
                                           @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
         Map<String, Object> updates = new ObjectMapper().readValue(updatesJson, new TypeReference<>() {});
         if (image != null && !image.isEmpty()) {
