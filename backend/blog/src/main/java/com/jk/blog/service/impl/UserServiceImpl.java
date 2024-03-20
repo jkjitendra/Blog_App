@@ -86,13 +86,14 @@ public class UserServiceImpl implements UserService {
             user.setName(userRequestBody.getName());
         if(userRequestBody.getEmail() != null)
             user.setEmail(userRequestBody.getEmail());
+
         if(userRequestBody.getMobile() != null && userRequestBody.getCountryName() != null){
             String regionCode = CountryToRegionCodeUtil.getCountryISOCode(userRequestBody.getCountryName());
             if (!PhoneNumberValidationUtil.isValidPhoneNumber(userRequestBody.getMobile(), regionCode)) {
                 throw new IllegalArgumentException("Invalid Mobile Number Format");
             }
             user.setCountryName(userRequestBody.getCountryName());
-            user.setMobile(userRequestBody.getMobile());
+            user.setMobile(PhoneNumberValidationUtil.getPhoneNumber(regionCode, userRequestBody.getMobile()));
         }
 //        user.setPassword(userDTO.getPassword());
 //        user.setActive(userDTO.getActive());
