@@ -7,6 +7,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -15,11 +21,18 @@ public class PostRequestBody {
     @NotEmpty
     @Size(min = 4, message = "title should be greater than 4")
     private String title;
+
     @NotEmpty
     @Size(min = 10, message = "content should be greater than 10")
     private String content;
+
     private String imageUrl;
     private String videoUrl;
     private Long userId;
     private Long categoryId;
+
+    private List<CommentRequestBody> comments = new ArrayList<>();
+
+    private Set<String> tagNames = new HashSet<>();
+
 }
