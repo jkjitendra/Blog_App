@@ -9,7 +9,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "tags")
+@Table(name = "tags", uniqueConstraints = {@UniqueConstraint(columnNames = {"tagName"})})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,4 +24,8 @@ public class Tag {
 
     @ManyToMany(mappedBy = "tags", cascade = CascadeType.MERGE)
     private Set<Post> posts = new HashSet<>();
+
+    public Tag(String tagName) {
+        this.tagName = tagName;
+    }
 }
