@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -16,6 +17,7 @@ import java.util.Set;
 @Getter
 @Setter
 @NoArgsConstructor
+@ToString
 public class PostRequestBody {
 
     @NotEmpty
@@ -31,7 +33,7 @@ public class PostRequestBody {
     private Long userId;
     private Long categoryId;
 
-    private List<CommentRequestBody> comments = new ArrayList<>();
+//    private List<CommentRequestBody> comments = new ArrayList<>();
 
     private Set<String> tagNames = new HashSet<>();
 
