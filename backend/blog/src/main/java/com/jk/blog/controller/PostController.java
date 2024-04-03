@@ -130,8 +130,15 @@ public class PostController {
         return new ResponseEntity<>(updatePost, HttpStatus.OK);
     }
 
+    @PatchMapping("/post/{postId}/visibility")
+    public ResponseEntity<APIResponse> togglePostVisibility(@PathVariable Long postId, @RequestBody Map<String, Boolean> visibility) {
+        boolean isLive = visibility.getOrDefault("isLive", false);
+        this.postService.togglePostVisibility(postId, isLive);
+        return new ResponseEntity<>(new APIResponse("isLive updated Successfully", true), HttpStatus.OK);
+    }
+
     @DeleteMapping("/user/{userId}/posts/{postId}")
-    public ResponseEntity<APIResponse> deleteUser(@PathVariable Long userId, @PathVariable Long postId) {
+    public ResponseEntity<APIResponse> deletePost(@PathVariable Long userId, @PathVariable Long postId) {
         this.userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("Post", "userId", userId));
         this.postService.deletePost(postId);
         return new ResponseEntity<>(new APIResponse("Post Deleted Successfully", true), HttpStatus.OK);
