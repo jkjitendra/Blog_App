@@ -4,7 +4,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 
@@ -23,6 +25,10 @@ public class PostResponseBody {
 
     private String videoUrl;
 
+    private Date createdDate;
+
+    private Date lastUpdatedDate;
+
     private Long userId;
 
     private Long categoryId;
@@ -30,5 +36,7 @@ public class PostResponseBody {
     private Boolean isLive;
 
     private Set<String> tagNames = new HashSet<>();
+
+    private List<CommentResponseBody> comments;
 
 }
