@@ -117,16 +117,16 @@ public class PostController {
                                                        @RequestPart(value = "video", required = false) MultipartFile video) throws IOException {
 
         this.userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("Post", "userId", userId));
-        Map<String, Object> updates = new ObjectMapper().readValue(updatesJson, new TypeReference<>() {});
+        PostRequestBody postJSON = new ObjectMapper().readValue(updatesJson, new TypeReference<>() {});
         if (image != null && !image.isEmpty()) {
             String imageUrl = fileService.uploadImage(path, image);
-            updates.put("imageUrl", imageUrl);
+            postJSON.setImageUrl(imageUrl);
         }
         if (video != null && !video.isEmpty()) {
             String videoUrl = fileService.uploadVideo(path, video);
-            updates.put("videoUrl", videoUrl);
+            postJSON.setVideoUrl(videoUrl);
         }
-        PostResponseBody updatePost = this.postService.patchPost(updates, postId);
+        PostResponseBody updatePost = this.postService.patchPost(postJSON, postId);
         return new ResponseEntity<>(updatePost, HttpStatus.OK);
     }
 
