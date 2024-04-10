@@ -29,11 +29,12 @@ public class PostRequestBody {
     private String content;
 
     private String imageUrl;
-    private String videoUrl;
-    private Long userId;
-    private Long categoryId;
 
-//    private List<CommentRequestBody> comments = new ArrayList<>();
+    private String videoUrl;
+
+    private Long userId;
+
+    private Long categoryId;
 
     private Set<String> tagNames = new HashSet<>();
 
