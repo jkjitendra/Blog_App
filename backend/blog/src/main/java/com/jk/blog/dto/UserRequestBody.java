@@ -12,7 +12,9 @@ import lombok.Setter;
 @Getter
 @Setter
 public class UserRequestBody {
+
     private Long id;
+
     @NotEmpty
     @Size(min = 4, message = "Name Should Be Greater Than 4")
     private String name;

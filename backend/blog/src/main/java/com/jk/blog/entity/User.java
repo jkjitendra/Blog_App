@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +39,11 @@ public class User {
     private String countryName;
 
     private Boolean active;
+
+    private Instant createdDate;
+
+    private Instant lastLoggedInDate;
+
 //    private String resetToken;
 //    private LocalDateTime resetTokenExpiryDate;
 
@@ -50,4 +55,9 @@ public class User {
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private Profile profile;
+
+    // Method to be called when user logs in, to update last logged in time
+    public void updateLastLoggedIn() {
+        this.lastLoggedInDate = Instant.now();
+    }
 }

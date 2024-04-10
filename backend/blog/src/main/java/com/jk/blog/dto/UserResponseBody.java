@@ -22,4 +22,8 @@ public class UserResponseBody {
     private String mobile;
 
     private String countryName;
+
+    private String createdDate;
+
+    private String lastLoggedInDate;
 }
