@@ -25,9 +25,9 @@ public class PostResponseBody {
 
     private String videoUrl;
 
-    private Date createdDate;
+    private String createdDate;
 
-    private Date lastUpdatedDate;
+    private String lastUpdatedDate;
 
     private Long userId;
 
