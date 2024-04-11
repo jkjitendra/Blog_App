@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "comments")
 @Getter
@@ -15,7 +17,12 @@ public class Comment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long commentId;
+
     private String commentDesc;
+
+    private Instant createdDate;
+
+    private Instant lastUpdatedDate;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
@@ -24,4 +31,5 @@ public class Comment {
     @ManyToOne
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
+
 }
