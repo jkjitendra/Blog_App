@@ -13,9 +13,14 @@ import java.util.Date;
 public class CommentResponseBody {
 
     private Long commentId;
+
     private String commentDesc;
-    private Date createdDate;
-    private Date lastUpdatedDate;
+
+    private String createdDate;
+
+    private String lastUpdatedDate;
+
     private Long userId;
+
     private Long postId;
 }

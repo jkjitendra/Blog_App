@@ -16,6 +16,8 @@ public class CommentRequestBody {
     @NotEmpty
     @Size(min = 10, message = "content should be greater than 10")
     private String commentDesc;
+
     private Long userId;
+
     private Long postId;
 }
