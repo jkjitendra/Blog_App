@@ -9,15 +9,29 @@ import java.util.List;
 import java.util.Map;
 
 public interface PostService {
+
     PostResponseBody createPost(Long userId, PostRequestBody postRequestBody);
-    PostResponseBody updatePost(PostRequestBody postRequestBody, Long postId);
-    PostResponseBody patchPost(Map<String, Object> updates, Long postId);
-    void togglePostVisibility(Long postId, boolean isLive);
-    void deletePost(Long postId);
+
     PageableResponse<PostResponseBody> getAllPost(Integer pageNumber, Integer pageSize, String sortBy, String sortDirection);
+
     PostResponseBody getPostById(Long postId);
+
+    PostResponseBody updatePost(PostRequestBody postRequestBody, Long postId);
+
+    PostResponseBody patchPost(PostRequestBody postRequestBody, Long postId);
+
+    void togglePostVisibility(Long postId, boolean isLive);
+
+    void deletePost(Long postId);
+
     List<PostResponseBody> getPostsByUser(Long userId);
+
     List<PostResponseBody> getPostsByCategory(Long categoryId);
+
     List<PostResponseBody> searchPostsByTitle(String keyword);
+
+    void deactivatePost(Long postId);
+
+    void activatePost(Long postId);
 
 }
