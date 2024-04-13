@@ -29,6 +29,10 @@ public class PostResponseBody {
 
     private String lastUpdatedDate;
 
+    private boolean isPostDeleted;
+
+    private String postDeletionTimestamp;
+
     private Long userId;
 
     private Long categoryId;

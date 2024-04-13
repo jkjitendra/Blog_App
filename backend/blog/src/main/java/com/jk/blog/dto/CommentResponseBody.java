@@ -20,6 +20,10 @@ public class CommentResponseBody {
 
     private String lastUpdatedDate;
 
+    private boolean isCommentDeleted;
+
+    private String commentDeletionTimestamp;
+
     private Long userId;
 
     private Long postId;
