@@ -144,6 +144,18 @@ public class PostController {
         return new ResponseEntity<>(new APIResponse("Post Deleted Successfully", true), HttpStatus.OK);
     }
 
+    @PatchMapping(value = "/post/{postId}/deactivate")
+    public ResponseEntity<APIResponse> patchPostDeactivate(@PathVariable Long postId) throws IOException {
+        this.postService.deactivatePost(postId);
+        return new ResponseEntity<>(new APIResponse("Post Deactivated Successfully", true), HttpStatus.OK);
+    }
+
+    @PatchMapping(value = "/post/{postId}/activate")
+    public ResponseEntity<APIResponse> patchPostActivate(@PathVariable Long postId) throws IOException {
+        this.postService.activatePost(postId);
+        return new ResponseEntity<>(new APIResponse("Post Activated Successfully", true), HttpStatus.OK);
+    }
+
     @GetMapping("/user/{userId}/posts")
     public ResponseEntity<List<PostResponseBody>> getPostsByUser(@PathVariable Long userId) {
         List<PostResponseBody> postDTOSByUser = this.postService.getPostsByUser(userId);
