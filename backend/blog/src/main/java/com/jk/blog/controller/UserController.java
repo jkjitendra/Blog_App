@@ -1,14 +1,19 @@
 package com.jk.blog.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jk.blog.dto.*;
 import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +51,18 @@ public class UserController {
     public ResponseEntity<APIResponse> deleteUser(@PathVariable("userId") Long uId) {
         this.userService.deleteUser(uId);
         return new ResponseEntity<>(new APIResponse("User Deleted Successfully", true), HttpStatus.OK);
+    }
+
+    @PatchMapping(value = "/user/{userId}/deactivate")
+    public ResponseEntity<APIResponse> patchUserDeactivate(@PathVariable Long userId) throws IOException {
+        this.userService.deactivateUserAccount(userId);
+        return new ResponseEntity<>(new APIResponse("User Deactivated Successfully", true), HttpStatus.OK);
+    }
+
+    @PatchMapping(value = "/user/{userId}/activate")
+    public ResponseEntity<APIResponse> patchUserActivate(@PathVariable Long userId) throws IOException {
+        this.userService.activateUserAccount(userId);
+        return new ResponseEntity<>(new APIResponse("User Activated Successfully", true), HttpStatus.OK);
     }
 
     @GetMapping("/check-username")

@@ -49,4 +49,17 @@ public class CommentController {
         this.commentService.deleteComment(commentId);
         return new ResponseEntity<>(new APIResponse("Comment deleted Successfully", true), HttpStatus.OK);
     }
+
+
+    @PatchMapping(value = "/comment/{commentId}/deactivate")
+    public ResponseEntity<APIResponse> patchCommentDeactivate(@PathVariable Long commentId) throws IOException {
+        this.commentService.deactivateComment(commentId);
+        return new ResponseEntity<>(new APIResponse("Comment Deactivated Successfully", true), HttpStatus.OK);
+    }
+
+    @PatchMapping(value = "/post/{postId}/activate")
+    public ResponseEntity<APIResponse> patchCommentActivate(@PathVariable Long commentId) throws IOException {
+        this.commentService.activateComment(commentId);
+        return new ResponseEntity<>(new APIResponse("Comment Activated Successfully", true), HttpStatus.OK);
+    }
 }
