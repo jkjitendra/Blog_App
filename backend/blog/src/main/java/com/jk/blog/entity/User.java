@@ -38,11 +38,13 @@ public class User {
     @Column(nullable = false)
     private String countryName;
 
-    private Boolean active;
-
     private Instant createdDate;
 
     private Instant lastLoggedInDate;
+
+    private boolean isUserDeleted = false;
+
+    private Instant userDeletionTimestamp;
 
 //    private String resetToken;
 //    private LocalDateTime resetTokenExpiryDate;

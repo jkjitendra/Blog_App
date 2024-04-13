@@ -17,8 +17,6 @@ public class UserResponseBody {
 
     private String email;
 
-    private Boolean active;
-
     private String mobile;
 
     private String countryName;
@@ -26,4 +24,9 @@ public class UserResponseBody {
     private String createdDate;
 
     private String lastLoggedInDate;
+
+    private boolean isUserDeleted;
+
+    private String userDeletionTimestamp;
+
 }

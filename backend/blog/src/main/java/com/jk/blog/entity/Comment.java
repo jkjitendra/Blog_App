@@ -24,6 +24,10 @@ public class Comment {
 
     private Instant lastUpdatedDate;
 
+    private boolean isCommentDeleted = false;
+
+    private Instant commentDeletionTimestamp;
+
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
