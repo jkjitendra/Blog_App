@@ -1,24 +1,21 @@
 package com.jk.blog.service.impl;
 
-import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.jk.blog.dto.UserRequestBody;
 import com.jk.blog.dto.UserResponseBody;
 import com.jk.blog.entity.Profile;
 import com.jk.blog.entity.User;
-//import com.jk.blog.exception.InvalidTokenException;
 import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.repository.UserRepository;
-//import com.jk.blog.service.MailService;
-//import com.jk.blog.service.PasswordResetService;
 import com.jk.blog.service.UserService;
 import com.jk.blog.utils.CountryToRegionCodeUtil;
 import com.jk.blog.utils.PhoneNumberValidationUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -45,16 +42,13 @@ public class UserServiceImpl implements UserService {
         }
         User user = this.dtoToUser(userRequestBody);
         user.setMobile(PhoneNumberValidationUtil.getPhoneNumber(regionCode, userRequestBody.getMobile()));
-        user.setActive(true);
-
+        user.setCreatedDate(Instant.now());
         Profile profile = new Profile();
         profile.setUser(user); // Associate profile with the user
         user.setProfile(profile);
 
         User savedUser = this.userRepository.save(user);
-        UserResponseBody createdUserResponseBody = this.userToDTO(savedUser);
-        createdUserResponseBody.setActive(true);
-        return createdUserResponseBody;
+        return this.userToDTO(savedUser);
     }
 
     @Override
@@ -95,8 +89,6 @@ public class UserServiceImpl implements UserService {
             user.setCountryName(userRequestBody.getCountryName());
             user.setMobile(PhoneNumberValidationUtil.getPhoneNumber(regionCode, userRequestBody.getMobile()));
         }
-//        user.setPassword(userDTO.getPassword());
-//        user.setActive(userDTO.getActive());
         User updatedUser = this.userRepository.save(user);
         return this.userToDTO(updatedUser);
     }
@@ -108,6 +100,40 @@ public class UserServiceImpl implements UserService {
                         .findById(userId)
                         .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
         this.userRepository.delete(user);
+    }
+
+    @Override
+    @Transactional
+    public void deactivateUserAccount(Long userId) {
+        User user = this.userRepository
+                        .findById(userId)
+                        .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
+
+        user.setUserDeleted(true);
+        this.userRepository.save(user);
+        // TO be done:- send email/notification to the user about account deactivation and data cleanup process
+    }
+
+    @Override
+    @Transactional
+    public void activateUserAccount(Long userId) {
+        User user = this.userRepository
+                        .findById(userId)
+                        .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
+
+        Instant cutoff = Instant.now().minus(90, ChronoUnit.DAYS);
+        if (user.isUserDeleted() && user.getUserDeletionTimestamp().isAfter(cutoff)) {
+            user.setUserDeleted(false);
+            user.setUserDeletionTimestamp(null);
+            user.getPosts().forEach((comment) -> {
+                if (comment.isPostDeleted() && comment.getPostDeletionTimestamp() != null && comment.getPostDeletionTimestamp().isAfter(cutoff)) {
+                    comment.setPostDeleted(false);
+                    comment.setPostDeletionTimestamp(null);
+                }
+            });
+            this.userRepository.save(user);
+        }
+        // TO be done:- send email/notification to the user about account activation OR we can create an AOP for this
     }
 
     @Override
