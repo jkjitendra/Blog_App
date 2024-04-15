@@ -1,5 +1,6 @@
-package com.jk.blog.dto;
+package com.jk.blog.dto.user;
 
+import com.jk.blog.dto.profile.ProfileResponseBody;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -21,11 +22,13 @@ public class UserResponseBody {
 
     private String countryName;
 
-    private String createdDate;
+    private String userCreatedDate;
 
-    private String lastLoggedInDate;
+    private String userLastLoggedInDate;
 
     private boolean isUserDeleted;
+
+    private ProfileResponseBody profile;
 
     private String userDeletionTimestamp;
 

@@ -1,14 +1,13 @@
-package com.jk.blog.dto;
+package com.jk.blog.dto.post;
 
+import com.jk.blog.dto.comment.CommentResponseBody;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 
 @Getter
 @Setter
@@ -25,9 +24,9 @@ public class PostResponseBody {
 
     private String videoUrl;
 
-    private String createdDate;
+    private String postCreatedDate;
 
-    private String lastUpdatedDate;
+    private String postLastUpdatedDate;
 
     private boolean isPostDeleted;
 

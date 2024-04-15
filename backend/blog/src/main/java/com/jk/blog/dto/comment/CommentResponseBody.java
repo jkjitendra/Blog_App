@@ -1,4 +1,4 @@
-package com.jk.blog.dto;
+package com.jk.blog.dto.comment;
 
 
 import lombok.Getter;
@@ -16,9 +16,9 @@ public class CommentResponseBody {
 
     private String commentDesc;
 
-    private String createdDate;
+    private String commentCreatedDate;
 
-    private String lastUpdatedDate;
+    private String commentLastUpdatedDate;
 
     private boolean isCommentDeleted;
 
