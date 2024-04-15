@@ -1,5 +1,6 @@
 package com.jk.blog.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -38,9 +39,9 @@ public class User {
     @Column(nullable = false)
     private String countryName;
 
-    private Instant createdDate;
+    private Instant userCreatedDate;
 
-    private Instant lastLoggedInDate;
+    private Instant userLastLoggedInDate;
 
     private boolean isUserDeleted = false;
 
@@ -60,6 +61,6 @@ public class User {
 
     // Method to be called when user logs in, to update last logged in time
     public void updateLastLoggedIn() {
-        this.lastLoggedInDate = Instant.now();
+        this.userLastLoggedInDate = Instant.now();
     }
 }

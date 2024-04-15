@@ -1,17 +1,16 @@
 package com.jk.blog.controller;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jk.blog.dto.*;
-import com.jk.blog.exception.ResourceNotFoundException;
+import com.jk.blog.dto.user.UserCreateRequestBody;
+import com.jk.blog.dto.user.UserRequestBody;
+import com.jk.blog.dto.user.UserResponseBody;
+import com.jk.blog.dto.user.UserStatusResponse;
 import com.jk.blog.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -26,8 +25,8 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/")
-    public ResponseEntity<UserResponseBody> createUser(@Valid @RequestBody UserRequestBody userRequestBody) {
-        UserResponseBody createdUserRequestBody = this.userService.createUser(userRequestBody);
+    public ResponseEntity<UserResponseBody> createUser(@Valid @RequestBody UserCreateRequestBody userCreateRequestBody) {
+        UserResponseBody createdUserRequestBody = this.userService.createUser(userCreateRequestBody);
         return new ResponseEntity<>(createdUserRequestBody, HttpStatus.CREATED);
     }
 
@@ -54,15 +53,19 @@ public class UserController {
     }
 
     @PatchMapping(value = "/user/{userId}/deactivate")
-    public ResponseEntity<APIResponse> patchUserDeactivate(@PathVariable Long userId) throws IOException {
-        this.userService.deactivateUserAccount(userId);
-        return new ResponseEntity<>(new APIResponse("User Deactivated Successfully", true), HttpStatus.OK);
+    public ResponseEntity<UserStatusResponse> patchUserDeactivate(@PathVariable Long userId) throws IOException{
+        UserResponseBody userResponseBody = this.userService.deactivateUserAccount(userId);
+        APIResponse apiResponse = new APIResponse("User Deactivated Successfully", true);
+        UserStatusResponse response = new UserStatusResponse(apiResponse, userResponseBody);
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping(value = "/user/{userId}/activate")
-    public ResponseEntity<APIResponse> patchUserActivate(@PathVariable Long userId) throws IOException {
-        this.userService.activateUserAccount(userId);
-        return new ResponseEntity<>(new APIResponse("User Activated Successfully", true), HttpStatus.OK);
+    public ResponseEntity<UserStatusResponse> patchUserActivate(@PathVariable Long userId) throws IOException{
+        UserResponseBody userResponseBody = this.userService.activateUserAccount(userId);
+        APIResponse apiResponse = new APIResponse("User Activated Successfully", true);
+        UserStatusResponse response = new UserStatusResponse(apiResponse, userResponseBody);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/check-username")

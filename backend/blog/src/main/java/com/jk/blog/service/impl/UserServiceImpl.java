@@ -1,7 +1,8 @@
 package com.jk.blog.service.impl;
 
-import com.jk.blog.dto.UserRequestBody;
-import com.jk.blog.dto.UserResponseBody;
+import com.jk.blog.dto.user.UserCreateRequestBody;
+import com.jk.blog.dto.user.UserRequestBody;
+import com.jk.blog.dto.user.UserResponseBody;
 import com.jk.blog.entity.Profile;
 import com.jk.blog.entity.User;
 import com.jk.blog.exception.ResourceNotFoundException;
@@ -35,20 +36,22 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponseBody createUser(UserRequestBody userRequestBody) {
-        String regionCode = CountryToRegionCodeUtil.getCountryISOCode(userRequestBody.getCountryName());
-        if (!PhoneNumberValidationUtil.isValidPhoneNumber(userRequestBody.getMobile(), regionCode)) {
+    public UserResponseBody createUser(UserCreateRequestBody userCreateRequestBody) {
+        String regionCode = CountryToRegionCodeUtil.getCountryISOCode(userCreateRequestBody.getCountryName());
+        if (!PhoneNumberValidationUtil.isValidPhoneNumber(userCreateRequestBody.getMobile(), regionCode)) {
             throw new IllegalArgumentException("Invalid Mobile Number Format");
         }
-        User user = this.dtoToUser(userRequestBody);
-        user.setMobile(PhoneNumberValidationUtil.getPhoneNumber(regionCode, userRequestBody.getMobile()));
-        user.setCreatedDate(Instant.now());
+//        User user = UserMapper.userRequestBodyToUser(userRequestBody);
+        User user = this.modelMapper.map(userCreateRequestBody, User.class);
+        user.setMobile(PhoneNumberValidationUtil.getPhoneNumber(regionCode, userCreateRequestBody.getMobile()));
+        user.setUserCreatedDate(Instant.now());
         Profile profile = new Profile();
         profile.setUser(user); // Associate profile with the user
         user.setProfile(profile);
 
         User savedUser = this.userRepository.save(user);
-        return this.userToDTO(savedUser);
+//        return UserMapper.userToUserResponseBody(savedUser);
+        return this.modelMapper.map(savedUser, UserResponseBody.class);
     }
 
     @Override
@@ -58,7 +61,8 @@ public class UserServiceImpl implements UserService {
                         .findById(userId)
                         .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
 
-        return this.userToDTO(user);
+//        return UserMapper.userToUserResponseBody(user);
+        return this.modelMapper.map(user, UserResponseBody.class);
     }
 
     @Override
@@ -66,7 +70,7 @@ public class UserServiceImpl implements UserService {
     public List<UserResponseBody> getAllUsers() {
         List<User> usersList = this.userRepository.findAll();
         return usersList.stream()
-                        .map(this::userToDTO)
+                        .map(user -> this.modelMapper.map(user, UserResponseBody.class))
                         .collect(Collectors.toList());
     }
 
@@ -90,7 +94,8 @@ public class UserServiceImpl implements UserService {
             user.setMobile(PhoneNumberValidationUtil.getPhoneNumber(regionCode, userRequestBody.getMobile()));
         }
         User updatedUser = this.userRepository.save(user);
-        return this.userToDTO(updatedUser);
+//        return UserMapper.userToUserResponseBody(updatedUser);
+        return this.modelMapper.map(updatedUser, UserResponseBody.class);
     }
 
     @Override
@@ -104,19 +109,21 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void deactivateUserAccount(Long userId) {
+    public UserResponseBody deactivateUserAccount(Long userId) {
         User user = this.userRepository
                         .findById(userId)
                         .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
 
         user.setUserDeleted(true);
-        this.userRepository.save(user);
+        user.setUserDeletionTimestamp(Instant.now());
+        User deactivatedUser = this.userRepository.save(user);
+        return this.modelMapper.map(deactivatedUser, UserResponseBody.class);
         // TO be done:- send email/notification to the user about account deactivation and data cleanup process
     }
 
     @Override
     @Transactional
-    public void activateUserAccount(Long userId) {
+    public UserResponseBody activateUserAccount(Long userId) {
         User user = this.userRepository
                         .findById(userId)
                         .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
@@ -131,8 +138,9 @@ public class UserServiceImpl implements UserService {
                     comment.setPostDeletionTimestamp(null);
                 }
             });
-            this.userRepository.save(user);
         }
+        User activatedUser = this.userRepository.save(user);
+        return this.modelMapper.map(activatedUser, UserResponseBody.class);
         // TO be done:- send email/notification to the user about account activation OR we can create an AOP for this
     }
 
@@ -163,28 +171,4 @@ public class UserServiceImpl implements UserService {
 //        this.passwordResetService.initiateResetPasswordProcess(email);
 //    }
 
-
-    public User dtoToUser(UserRequestBody userRequestBody) {
-        return this.modelMapper.map(userRequestBody, User.class);
-//        user.setId(userDTO.getId());
-//        user.setName(userDTO.getName());
-//        user.setEmail(userDTO.getEmail());
-//        user.setPassword(userDTO.getPassword());
-//        user.setActive(userDTO.getActive());
-//        user.setMobile(userDTO.getMobile());
-//        user.setCountryName(userDTO.getCountryName());
-//        return user;
-    }
-
-    public UserResponseBody userToDTO(User user) {
-        return this.modelMapper.map(user, UserResponseBody.class);
-//        userDTO.setId(user.getId());
-//        userDTO.setName(user.getName());
-//        userDTO.setEmail(user.getEmail());
-//        userDTO.setPassword(user.getPassword());
-//        userDTO.setActive(user.getActive());
-//        userDTO.setMobile(user.getMobile());
-//        userDTO.setCountryName(user.getCountryName());
-//        return userDTO;
-    }
 }
