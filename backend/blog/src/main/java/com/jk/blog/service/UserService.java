@@ -1,14 +1,14 @@
 package com.jk.blog.service;
 
-import com.jk.blog.dto.UserRequestBody;
-import com.jk.blog.dto.UserResponseBody;
-import org.springframework.web.bind.annotation.RequestBody;
+import com.jk.blog.dto.user.UserCreateRequestBody;
+import com.jk.blog.dto.user.UserRequestBody;
+import com.jk.blog.dto.user.UserResponseBody;
 
 import java.util.List;
 
 public interface UserService {
 
-    UserResponseBody createUser(UserRequestBody user);
+    UserResponseBody createUser(UserCreateRequestBody user);
 
     UserResponseBody updateUser(UserRequestBody user, Long userId);
 
@@ -18,9 +18,9 @@ public interface UserService {
 
     void deleteUser(Long userId);
 
-    void deactivateUserAccount(Long userId);
+    UserResponseBody deactivateUserAccount(Long userId);
 
-    void activateUserAccount(Long userId);
+    UserResponseBody activateUserAccount(Long userId);
 
     boolean checkUsernameAvailability(String username);
 
