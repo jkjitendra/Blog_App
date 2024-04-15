@@ -1,4 +1,4 @@
-package com.jk.blog.dto;
+package com.jk.blog.dto.comment;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;

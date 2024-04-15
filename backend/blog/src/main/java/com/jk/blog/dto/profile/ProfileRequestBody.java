@@ -1,6 +1,7 @@
-package com.jk.blog.dto;
+package com.jk.blog.dto.profile;
 
 
+import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,9 +11,7 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class ProfileResponseBody {
-
-    private Long profileId;
+public class ProfileRequestBody {
 
     private String address;
 
