@@ -1,12 +1,10 @@
 package com.jk.blog.service;
 
 import com.jk.blog.dto.PageableResponse;
-import com.jk.blog.dto.PostRequestBody;
-import com.jk.blog.dto.PostResponseBody;
-import com.jk.blog.dto.ProfileResponseBody;
+import com.jk.blog.dto.post.PostRequestBody;
+import com.jk.blog.dto.post.PostResponseBody;
 
 import java.util.List;
-import java.util.Map;
 
 public interface PostService {
 
@@ -30,8 +28,8 @@ public interface PostService {
 
     List<PostResponseBody> searchPostsByTitle(String keyword);
 
-    void deactivatePost(Long postId);
+    PostResponseBody deactivatePost(Long postId);
 
-    void activatePost(Long postId);
+    PostResponseBody activatePost(Long postId);
 
 }
