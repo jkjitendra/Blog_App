@@ -4,7 +4,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jk.blog.constants.AppConstants;
 import com.jk.blog.dto.*;
-import com.jk.blog.entity.User;
+import com.jk.blog.dto.post.PostRequestBody;
+import com.jk.blog.dto.post.PostResponseBody;
+import com.jk.blog.dto.post.PostStatusResponse;
 import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.repository.UserRepository;
 import com.jk.blog.service.FileService;
@@ -26,7 +28,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/posts")
@@ -145,15 +146,19 @@ public class PostController {
     }
 
     @PatchMapping(value = "/post/{postId}/deactivate")
-    public ResponseEntity<APIResponse> patchPostDeactivate(@PathVariable Long postId) throws IOException {
-        this.postService.deactivatePost(postId);
-        return new ResponseEntity<>(new APIResponse("Post Deactivated Successfully", true), HttpStatus.OK);
+    public ResponseEntity<PostStatusResponse> patchPostDeactivate(@PathVariable Long postId) throws IOException {
+        PostResponseBody postResponseBody = this.postService.deactivatePost(postId);
+        APIResponse apiResponse = new APIResponse("Post Deactivated Successfully", true);
+        PostStatusResponse response = new PostStatusResponse(apiResponse, postResponseBody);
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping(value = "/post/{postId}/activate")
-    public ResponseEntity<APIResponse> patchPostActivate(@PathVariable Long postId) throws IOException {
-        this.postService.activatePost(postId);
-        return new ResponseEntity<>(new APIResponse("Post Activated Successfully", true), HttpStatus.OK);
+    public ResponseEntity<PostStatusResponse> patchPostActivate(@PathVariable Long postId) throws IOException {
+        PostResponseBody postResponseBody = this.postService.activatePost(postId);
+        APIResponse apiResponse = new APIResponse("Post Activated Successfully", true);
+        PostStatusResponse response = new PostStatusResponse(apiResponse, postResponseBody);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/user/{userId}/posts")

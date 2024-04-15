@@ -31,9 +31,9 @@ public class Post {
     private String imageUrl;
     private String videoUrl;
 
-    private Instant createdDate;
+    private Instant postCreatedDate;
 
-    private Instant lastUpdatedDate;
+    private Instant postLastUpdatedDate;
 
     private boolean isPostDeleted = false;
 

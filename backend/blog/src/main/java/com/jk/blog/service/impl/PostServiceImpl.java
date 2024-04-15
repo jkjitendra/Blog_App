@@ -2,11 +2,15 @@ package com.jk.blog.service.impl;
 
 import com.jk.blog.constants.AppConstants;
 import com.jk.blog.dto.*;
+import com.jk.blog.dto.comment.CommentResponseBody;
+import com.jk.blog.dto.post.PostRequestBody;
+import com.jk.blog.dto.post.PostResponseBody;
 import com.jk.blog.entity.*;
 import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.repository.*;
 import com.jk.blog.service.PostService;
 import com.jk.blog.utils.DateTimeUtil;
+import com.jk.blog.dto.post.PostMapper;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -48,15 +52,7 @@ public class PostServiceImpl implements PostService {
                                 .findById(postRequestBody.getCategoryId())
                                 .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryId", postRequestBody.getCategoryId()));
 
-        Post post = new Post();
-        post.setPostTitle(postRequestBody.getTitle());
-        post.setPostContent(postRequestBody.getContent());
-        post.setImageUrl(postRequestBody.getImageUrl());
-        post.setVideoUrl(postRequestBody.getVideoUrl());
-        post.setLive(true);
-        post.setCreatedDate(Instant.now());
-        post.setUser(user);
-        post.setCategory(category);
+        Post post = PostMapper.postRequestBodyToPost(postRequestBody, user, category);
 
         if (postRequestBody.getTagNames() != null && !postRequestBody.getTagNames().isEmpty()) {
             Set<Tag> tags = postRequestBody.getTagNames().stream()
@@ -66,14 +62,15 @@ public class PostServiceImpl implements PostService {
             post.setTags(tags);
         }
 
+        post.setPostCreatedDate(Instant.now());
         Post savedPost = this.postRepository.save(post);
         PostResponseBody postResponseBody = this.modelMapper.map(savedPost, PostResponseBody.class);
 
         postResponseBody.setIsLive(savedPost.isLive());
 
         Set<String> tagNames = savedPost.getTags().stream()
-                .map(Tag::getTagName)
-                .collect(Collectors.toSet());
+                                        .map(Tag::getTagName)
+                                        .collect(Collectors.toSet());
         postResponseBody.setTagNames(tagNames);
 
         return postResponseBody;
@@ -82,24 +79,16 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional(readOnly = true)
     public PostResponseBody getPostById(Long postId) {
-        Post post = this.postRepository
-                        .findByPostIdAndIsLiveTrueAndIsPostDeletedFalse(postId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Post", "postId", postId));
-        PostResponseBody responseBody = this.modelMapper.map(post, PostResponseBody.class);
+        Post existingPost = this.postRepository
+                                .findByPostIdAndIsLiveTrueAndIsPostDeletedFalse(postId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Post", "postId", postId));
 
+        PostResponseBody responseBody = PostMapper.postToPostResponseBody(existingPost);
 
-        List<CommentResponseBody> commentResponses = post.getComments().stream()
+        List<CommentResponseBody> commentResponses = existingPost.getComments().stream()
                                                          .map(comment -> this.modelMapper.map(comment, CommentResponseBody.class))
                                                          .collect(Collectors.toList());
         responseBody.setComments(commentResponses);
-        responseBody.setIsLive(post.isLive());
-        responseBody.setCreatedDate(DateTimeUtil.formatInstantToIsoString(post.getCreatedDate()));
-        responseBody.setLastUpdatedDate(DateTimeUtil.formatInstantToIsoString(post.getLastUpdatedDate()));
-        // Convert tag names to a set of strings
-        Set<String> tagNames = post.getTags().stream()
-                .map(Tag::getTagName)
-                .collect(Collectors.toSet());
-        responseBody.setTagNames(tagNames);
 
         return responseBody;
     }
@@ -111,18 +100,16 @@ public class PostServiceImpl implements PostService {
         Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
         Page<Post> pagePost = this.postRepository.findByIsLiveTrueAndIsPostDeletedFalse(pageable);
         List<Post> postList = pagePost.getContent();
-        List<PostResponseBody> postResponseBodyList = postList.stream().map(post -> {
-            PostResponseBody postResponse = modelMapper.map(post, PostResponseBody.class);
+        List<PostResponseBody> postResponseBodyList = postList.stream().map(existingPost -> {
+            PostResponseBody postResponse = PostMapper.postToPostResponseBody(existingPost);
 
             // Fetch a limited number of comments for each post, for example, the two most recent comments
-            List<Comment> comments = this.commentRepository.findTop2ByPost_PostIdOrderByCreatedDateDesc(post.getPostId());
+            List<Comment> comments = this.commentRepository.findTop2ByPost_PostIdOrderByCommentCreatedDateDesc(existingPost.getPostId());
             List<CommentResponseBody> commentResponses = comments.stream()
                     .map(comment -> modelMapper.map(comment, CommentResponseBody.class))
                     .collect(Collectors.toList());
             postResponse.setComments(commentResponses);
-            postResponse.setIsLive(post.isLive());
-            postResponse.setCreatedDate(DateTimeUtil.formatInstantToIsoString(post.getCreatedDate()));
-            postResponse.setLastUpdatedDate(DateTimeUtil.formatInstantToIsoString(post.getLastUpdatedDate()));
+
             return postResponse;
         }).collect(Collectors.toList());
 
@@ -160,22 +147,11 @@ public class PostServiceImpl implements PostService {
         existingPost.setPostContent(postRequestBody.getContent());
         existingPost.setImageUrl(postRequestBody.getImageUrl());
         existingPost.setVideoUrl(postRequestBody.getVideoUrl());
-        existingPost.setLastUpdatedDate(Instant.now());
+        existingPost.setPostLastUpdatedDate(Instant.now());
         existingPost.setCategory(category);
         Post updatedPost = this.postRepository.save(existingPost);
 
-        PostResponseBody postResponseBody = this.modelMapper.map(updatedPost, PostResponseBody.class);
-        postResponseBody.setComments(new ArrayList<>());
-        postResponseBody.setIsLive(updatedPost.isLive());
-        postResponseBody.setCreatedDate(DateTimeUtil.formatInstantToIsoString(updatedPost.getCreatedDate()));
-        postResponseBody.setLastUpdatedDate(DateTimeUtil.formatInstantToIsoString(updatedPost.getLastUpdatedDate()));
-
-        Set<String> tagNames = updatedPost.getTags().stream()
-                .map(Tag::getTagName)
-                .collect(Collectors.toSet());
-        postResponseBody.setTagNames(tagNames);
-
-        return postResponseBody;
+        return PostMapper.postToPostResponseBody(updatedPost);
     }
 
     @Override
@@ -203,7 +179,6 @@ public class PostServiceImpl implements PostService {
             existingPost.getTags().addAll(updatedTags); // Add all the updated tags
         }
         if (postRequestBody.getTitle() != null && !postRequestBody.getTitle().isEmpty())
-
             existingPost.setPostTitle(postRequestBody.getTitle());
         if (postRequestBody.getContent() != null && !postRequestBody.getContent().isEmpty())
             existingPost.setPostContent(postRequestBody.getContent());
@@ -211,21 +186,10 @@ public class PostServiceImpl implements PostService {
             existingPost.setImageUrl(postRequestBody.getImageUrl());
         if (postRequestBody.getVideoUrl() != null)
             existingPost.setVideoUrl(postRequestBody.getVideoUrl());
-        existingPost.setLastUpdatedDate(Instant.now());
+        existingPost.setPostLastUpdatedDate(Instant.now());
         Post updatedPost = this.postRepository.save(existingPost);
 
-        PostResponseBody patchedPost = this.modelMapper.map(updatedPost, PostResponseBody.class);
-        patchedPost.setPostId(updatedPost.getPostId());
-        patchedPost.setComments(new ArrayList<>());
-        patchedPost.setIsLive(updatedPost.isLive());
-        patchedPost.setCreatedDate(DateTimeUtil.formatInstantToIsoString(updatedPost.getCreatedDate()));
-        patchedPost.setLastUpdatedDate(DateTimeUtil.formatInstantToIsoString(updatedPost.getLastUpdatedDate()));
-
-        Set<String> tagNames = updatedPost.getTags().stream()
-                .map(Tag::getTagName)
-                .collect(Collectors.toSet());
-        patchedPost.setTagNames(tagNames);
-        return patchedPost;
+        return PostMapper.postToPostResponseBody(updatedPost);
     }
 
     @Override
@@ -235,7 +199,7 @@ public class PostServiceImpl implements PostService {
                         .findById(postId)
                         .orElseThrow(() -> new ResourceNotFoundException("Post", "postId", postId));
         post.setLive(isLive);
-        post.setLastUpdatedDate(Instant.now());
+        post.setPostLastUpdatedDate(Instant.now());
         this.postRepository.save(post);
     }
 
@@ -256,8 +220,8 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
         List<Post> existingPostList = this.postRepository.findByUser(existingUser);
         return existingPostList.stream()
-                .map((eachPost) -> this.modelMapper.map(eachPost, PostResponseBody.class))
-                .collect(Collectors.toList());
+                               .map((eachPost) -> this.modelMapper.map(eachPost, PostResponseBody.class))
+                               .collect(Collectors.toList());
     }
 
     @Override
@@ -283,40 +247,46 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public void deactivatePost(Long postId) {
-        Post post = this.postRepository
+    public PostResponseBody deactivatePost(Long postId) {
+        Post existingPost = this.postRepository
                         .findById(postId)
                         .orElseThrow(() -> new ResourceNotFoundException("Post", "postId", postId));
 
         Instant currentTimestamp = Instant.now();
-        post.setPostDeleted(true);
-        post.setPostDeletionTimestamp(currentTimestamp);
-        post.getComments().forEach(comment -> {
+        existingPost.setPostDeleted(true);
+        existingPost.setPostDeletionTimestamp(currentTimestamp);
+        existingPost.getComments().forEach(comment -> {
             comment.setCommentDeleted(true);
+            comment.setCommentLastUpdatedDate(Instant.now());
             comment.setCommentDeletionTimestamp(currentTimestamp);
         });
-
-        this.postRepository.save(post);
+        existingPost.setPostLastUpdatedDate(Instant.now());
+        Post updatedPost = this.postRepository.save(existingPost);
+        return PostMapper.postToPostResponseBody(updatedPost);
     }
 
     @Override
     @Transactional
-    public void activatePost(Long postId) {
-        Post post = this.postRepository
+    public PostResponseBody activatePost(Long postId) {
+        Post existingPost = this.postRepository
                         .findById(postId)
                         .orElseThrow(() -> new ResourceNotFoundException("Post", "postId", postId));
 
         Instant cutoff = Instant.now().minus(90, ChronoUnit.DAYS);
-        if (post.isPostDeleted() && post.getPostDeletionTimestamp().isAfter(cutoff)) {
-            post.setPostDeleted(false);
-            post.setPostDeletionTimestamp(null);
-            post.getComments().forEach(comment -> {
+        if (existingPost.isPostDeleted() && existingPost.getPostDeletionTimestamp().isAfter(cutoff)) {
+            existingPost.setPostDeleted(false);
+            existingPost.setPostDeletionTimestamp(null);
+            existingPost.getComments().forEach(comment -> {
                 if (comment.isCommentDeleted() && comment.getCommentDeletionTimestamp() != null && comment.getCommentDeletionTimestamp().isAfter(cutoff)) {
                     comment.setCommentDeleted(false);
+                    comment.setCommentLastUpdatedDate(Instant.now());
                     comment.setCommentDeletionTimestamp(null);
                 }
             });
-            this.postRepository.save(post);
         }
+        existingPost.setPostLastUpdatedDate(Instant.now());
+        Post updatedPost = this.postRepository.save(existingPost);
+
+        return PostMapper.postToPostResponseBody(updatedPost);
     }
 }
