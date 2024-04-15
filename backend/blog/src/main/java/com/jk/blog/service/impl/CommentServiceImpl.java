@@ -1,9 +1,7 @@
 package com.jk.blog.service.impl;
 
-import com.jk.blog.dto.CategoryDTO;
-import com.jk.blog.dto.CommentRequestBody;
-import com.jk.blog.dto.CommentResponseBody;
-import com.jk.blog.dto.ProfileResponseBody;
+import com.jk.blog.dto.comment.CommentRequestBody;
+import com.jk.blog.dto.comment.CommentResponseBody;
 import com.jk.blog.entity.Comment;
 import com.jk.blog.entity.Post;
 import com.jk.blog.entity.User;
@@ -68,7 +66,7 @@ public class CommentServiceImpl implements CommentService {
         comment.setCommentDesc(commentRequestBody.getCommentDesc());
         comment.setUser(user);
         comment.setPost(post);
-        comment.setCreatedDate(Instant.now());
+        comment.setCommentCreatedDate(Instant.now());
 
         Comment savedComment = this.commentRepository.save(comment);
         return this.modelMapper.map(savedComment, CommentResponseBody.class);
@@ -102,10 +100,10 @@ public class CommentServiceImpl implements CommentService {
                                       .orElseThrow(() -> new ResourceNotFoundException("Comment", "commentId", commentId));
 
         existingComment.setCommentDesc(commentRequestBody.getCommentDesc());
-        existingComment.setLastUpdatedDate(Instant.now());
+        existingComment.setCommentLastUpdatedDate(Instant.now());
         Comment updatedComment = this.commentRepository.save(existingComment);
         CommentResponseBody commentResponseBody = this.modelMapper.map(updatedComment, CommentResponseBody.class);
-        commentResponseBody.setLastUpdatedDate(DateTimeUtil.formatInstantToIsoString(updatedComment.getLastUpdatedDate()));
+        commentResponseBody.setCommentLastUpdatedDate(DateTimeUtil.formatInstantToIsoString(updatedComment.getCommentLastUpdatedDate()));
         return commentResponseBody;
     }
 

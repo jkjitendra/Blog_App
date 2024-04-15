@@ -1,7 +1,7 @@
 package com.jk.blog.service;
 
-import com.jk.blog.dto.CommentRequestBody;
-import com.jk.blog.dto.CommentResponseBody;
+import com.jk.blog.dto.comment.CommentRequestBody;
+import com.jk.blog.dto.comment.CommentResponseBody;
 
 import java.util.List;
 

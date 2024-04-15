@@ -20,9 +20,9 @@ public class Comment {
 
     private String commentDesc;
 
-    private Instant createdDate;
+    private Instant commentCreatedDate;
 
-    private Instant lastUpdatedDate;
+    private Instant commentLastUpdatedDate;
 
     private boolean isCommentDeleted = false;
 

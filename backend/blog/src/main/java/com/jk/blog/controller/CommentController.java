@@ -1,6 +1,8 @@
 package com.jk.blog.controller;
 
 import com.jk.blog.dto.*;
+import com.jk.blog.dto.comment.CommentRequestBody;
+import com.jk.blog.dto.comment.CommentResponseBody;
 import com.jk.blog.service.CommentService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
