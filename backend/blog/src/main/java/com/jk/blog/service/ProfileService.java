@@ -1,9 +1,8 @@
 package com.jk.blog.service;
 
-import com.jk.blog.dto.ProfileRequestBody;
-import com.jk.blog.dto.ProfileResponseBody;
+import com.jk.blog.dto.profile.ProfileRequestBody;
+import com.jk.blog.dto.profile.ProfileResponseBody;
 
-import java.util.List;
 import java.util.Map;
 
 public interface ProfileService {

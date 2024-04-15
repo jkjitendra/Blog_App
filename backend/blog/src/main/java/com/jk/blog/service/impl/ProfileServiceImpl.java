@@ -1,10 +1,9 @@
 package com.jk.blog.service.impl;
 
 
-import com.jk.blog.dto.ProfileRequestBody;
-import com.jk.blog.dto.ProfileResponseBody;
+import com.jk.blog.dto.profile.ProfileRequestBody;
+import com.jk.blog.dto.profile.ProfileResponseBody;
 import com.jk.blog.entity.Profile;
-import com.jk.blog.entity.User;
 import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.repository.ProfileRepository;
 import com.jk.blog.repository.UserRepository;

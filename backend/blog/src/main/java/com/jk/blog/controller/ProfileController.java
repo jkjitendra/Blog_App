@@ -4,11 +4,10 @@ package com.jk.blog.controller;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jk.blog.dto.APIResponse;
-import com.jk.blog.dto.ProfileRequestBody;
-import com.jk.blog.dto.ProfileResponseBody;
+import com.jk.blog.dto.profile.ProfileRequestBody;
+import com.jk.blog.dto.profile.ProfileResponseBody;
 import com.jk.blog.service.FileService;
 import com.jk.blog.service.ProfileService;
-import com.jk.blog.utils.CountryToRegionCodeUtil;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,11 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.DataInput;
 import java.io.IOException;
 import java.util.Map;
-
-import static com.jk.blog.utils.PhoneNumberValidationUtil.isValidPhoneNumber;
 
 
 @RestController
