@@ -132,10 +132,12 @@ public class PostController {
     }
 
     @PatchMapping("/post/{postId}/visibility")
-    public ResponseEntity<APIResponse> togglePostVisibility(@PathVariable Long postId, @RequestBody Map<String, Boolean> visibility) {
+    public ResponseEntity<PostStatusResponse> togglePostVisibility(@PathVariable Long postId, @RequestBody Map<String, Boolean> visibility) {
         boolean isLive = visibility.getOrDefault("isLive", false);
-        this.postService.togglePostVisibility(postId, isLive);
-        return new ResponseEntity<>(new APIResponse("isLive updated Successfully", true), HttpStatus.OK);
+        PostResponseBody postResponseBody = this.postService.togglePostVisibility(postId, isLive);
+        APIResponse apiResponse = new APIResponse("isLive updated Successfully", true);
+        PostStatusResponse response = new PostStatusResponse(apiResponse, postResponseBody);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/user/{userId}/posts/{postId}")
