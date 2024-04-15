@@ -194,13 +194,14 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public void togglePostVisibility(Long postId, boolean isLive) {
+    public PostResponseBody togglePostVisibility(Long postId, boolean isLive) {
         Post post = this.postRepository
                         .findById(postId)
                         .orElseThrow(() -> new ResourceNotFoundException("Post", "postId", postId));
         post.setLive(isLive);
         post.setPostLastUpdatedDate(Instant.now());
-        this.postRepository.save(post);
+        Post updatedPost = this.postRepository.save(post);
+        return PostMapper.postToPostResponseBody(updatedPost);
     }
 
     @Override

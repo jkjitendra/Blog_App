@@ -18,7 +18,7 @@ public interface PostService {
 
     PostResponseBody patchPost(PostRequestBody postRequestBody, Long postId);
 
-    void togglePostVisibility(Long postId, boolean isLive);
+    PostResponseBody togglePostVisibility(Long postId, boolean isLive);
 
     void deletePost(Long postId);
 

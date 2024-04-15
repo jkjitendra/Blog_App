@@ -1,6 +1,5 @@
 package com.jk.blog.entity;
 
-import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
 import com.vladmihalcea.hibernate.type.json.JsonStringType;
 import jakarta.persistence.*;
 import lombok.Getter;
