@@ -1,5 +1,6 @@
 package com.jk.blog.dto.comment;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -13,7 +14,7 @@ import java.util.Date;
 @NoArgsConstructor
 public class CommentRequestBody {
 
-    @NotEmpty
+    @NotBlank
     @Size(min = 10, message = "content should be greater than 10")
     private String commentDesc;
 
