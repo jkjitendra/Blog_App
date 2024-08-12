@@ -57,8 +57,8 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public InputStream getResource(String path, String fileName) throws IOException {
-        String fullPath = path + File.separator + fileName;
-        return new FileInputStream(fullPath);
+    public InputStream getResource(String path, String fileName) throws FileNotFoundException {
+        String fullFilePath = path + File.separator + fileName;
+        return new FileInputStream(fullFilePath);
     }
 }
