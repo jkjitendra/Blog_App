@@ -45,6 +45,6 @@ public class CategoryController {
     @DeleteMapping("/{categoryId}")
     public ResponseEntity<APIResponse> deleteCategory(@PathVariable Long categoryId) {
         this.categoryService.deleteCategory(categoryId);
-        return new ResponseEntity<>(new APIResponse("Category Deleted Successfully", true), HttpStatus.OK);
+        return new ResponseEntity<>(new APIResponse(true, "Category Deleted Successfully"), HttpStatus.OK);
     }
 }
