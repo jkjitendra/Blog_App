@@ -1,9 +1,6 @@
 package com.jk.blog.dto.user;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -13,21 +10,22 @@ import lombok.Setter;
 @Setter
 public class UserRequestBody {
 
-    @NotEmpty
+    @NotBlank
     @Size(min = 4, message = "Name Should Be Greater Than 4")
     private String name;
 
-    @NotEmpty
+    @NotBlank
     @Size(min = 4, message = "Username Should Be Greater Than 4")
     private String userName;
 
+    @NotBlank
     @Email(message = "Please Enter Valid Email")
     private String email;
 
-    @NotEmpty(message = "Mobile number must not be empty")
+    @NotBlank(message = "Mobile number must not be empty")
     @Pattern(regexp = "^\\+?[1-9][0-9]{7,14}$", message = "Invalid Mobile Number Format")
     private String mobile;
 
-    @NotEmpty(message = "Country Name Must Not Be Empty")
+    @NotBlank(message = "Country Name Must Not Be Empty")
     private String countryName;
 }
