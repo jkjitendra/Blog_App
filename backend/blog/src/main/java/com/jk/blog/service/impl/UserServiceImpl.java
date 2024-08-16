@@ -38,7 +38,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponseBody createUser(UserCreateRequestBody userCreateRequestBody) {
         String regionCode = CountryToRegionCodeUtil.getCountryISOCode(userCreateRequestBody.getCountryName());
-        if (!PhoneNumberValidationUtil.isValidPhoneNumber(userCreateRequestBody.getMobile(), regionCode)) {
+        if (PhoneNumberValidationUtil.isValidPhoneNumber(userCreateRequestBody.getMobile(), regionCode)) {
             throw new IllegalArgumentException("Invalid Mobile Number Format");
         }
 //        User user = UserMapper.userRequestBodyToUser(userRequestBody);
@@ -87,7 +87,7 @@ public class UserServiceImpl implements UserService {
 
         if(userRequestBody.getMobile() != null && userRequestBody.getCountryName() != null){
             String regionCode = CountryToRegionCodeUtil.getCountryISOCode(userRequestBody.getCountryName());
-            if (!PhoneNumberValidationUtil.isValidPhoneNumber(userRequestBody.getMobile(), regionCode)) {
+            if (PhoneNumberValidationUtil.isValidPhoneNumber(userRequestBody.getMobile(), regionCode)) {
                 throw new IllegalArgumentException("Invalid Mobile Number Format");
             }
             user.setCountryName(userRequestBody.getCountryName());
@@ -132,10 +132,17 @@ public class UserServiceImpl implements UserService {
         if (user.isUserDeleted() && user.getUserDeletionTimestamp().isAfter(cutoff)) {
             user.setUserDeleted(false);
             user.setUserDeletionTimestamp(null);
-            user.getPosts().forEach((comment) -> {
-                if (comment.isPostDeleted() && comment.getPostDeletionTimestamp() != null && comment.getPostDeletionTimestamp().isAfter(cutoff)) {
-                    comment.setPostDeleted(false);
-                    comment.setPostDeletionTimestamp(null);
+            user.getPosts().forEach((post) -> {
+                if (post.isPostDeleted() && post.getPostDeletionTimestamp() != null && post.getPostDeletionTimestamp().isAfter(cutoff)) {
+                    post.setPostDeleted(false);
+                    post.setPostDeletionTimestamp(null);
+                }
+            });
+            user.getComments().forEach((comment) -> {
+                if (comment.isCommentDeleted() && comment.getCommentDeletionTimestamp() != null
+                        && comment.getCommentDeletionTimestamp().isAfter(cutoff)) {
+                    comment.setCommentDeleted(false);
+                    comment.setCommentDeletionTimestamp(null);
                 }
             });
         }

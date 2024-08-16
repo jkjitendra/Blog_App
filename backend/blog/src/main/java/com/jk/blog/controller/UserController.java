@@ -49,13 +49,13 @@ public class UserController {
     @DeleteMapping("/{userId}")
     public ResponseEntity<APIResponse> deleteUser(@PathVariable("userId") Long uId) {
         this.userService.deleteUser(uId);
-        return new ResponseEntity<>(new APIResponse("User Deleted Successfully", true), HttpStatus.OK);
+        return new ResponseEntity<>(new APIResponse(true, "User Deleted Successfully"), HttpStatus.OK);
     }
 
     @PatchMapping(value = "/user/{userId}/deactivate")
     public ResponseEntity<UserStatusResponse> patchUserDeactivate(@PathVariable Long userId) throws IOException{
         UserResponseBody userResponseBody = this.userService.deactivateUserAccount(userId);
-        APIResponse apiResponse = new APIResponse("User Deactivated Successfully", true);
+        APIResponse apiResponse = new APIResponse(true, "User Deactivated Successfully");
         UserStatusResponse response = new UserStatusResponse(apiResponse, userResponseBody);
         return ResponseEntity.ok(response);
     }
@@ -63,7 +63,7 @@ public class UserController {
     @PatchMapping(value = "/user/{userId}/activate")
     public ResponseEntity<UserStatusResponse> patchUserActivate(@PathVariable Long userId) throws IOException{
         UserResponseBody userResponseBody = this.userService.activateUserAccount(userId);
-        APIResponse apiResponse = new APIResponse("User Activated Successfully", true);
+        APIResponse apiResponse = new APIResponse(true, "User Activated Successfully");
         UserStatusResponse response = new UserStatusResponse(apiResponse, userResponseBody);
         return ResponseEntity.ok(response);
     }
