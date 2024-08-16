@@ -1,16 +1,14 @@
 package com.jk.blog.dto.post;
 
 
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 
@@ -20,11 +18,11 @@ import java.util.Set;
 @ToString
 public class PostRequestBody {
 
-    @NotEmpty
+    @NotBlank
     @Size(min = 4, message = "title should be greater than 4")
     private String title;
 
-    @NotEmpty
+    @NotBlank
     @Size(min = 10, message = "content should be greater than 10")
     private String content;
 
