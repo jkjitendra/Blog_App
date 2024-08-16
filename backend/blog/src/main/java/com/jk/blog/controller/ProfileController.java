@@ -68,6 +68,6 @@ public class ProfileController {
     @DeleteMapping("/user/{userId}")
     public ResponseEntity<?> deleteProfile(@PathVariable Long userId) {
         this.profileService.deleteProfile(userId);
-        return new ResponseEntity<>(new APIResponse("Profile Deleted Successfully", true), HttpStatus.OK);
+        return new ResponseEntity<>(new APIResponse(true, "Profile Deleted Successfully"), HttpStatus.OK);
     }
 }
