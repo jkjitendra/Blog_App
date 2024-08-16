@@ -11,10 +11,7 @@ public class PhoneNumberValidationUtil {
         PhoneNumberUtil phoneUtil = PhoneNumberUtil.getInstance();
         try {
             PhoneNumber phoneNumber = phoneUtil.parse(phoneNumberStr, regionCode); // "null" for default region
-            if (!phoneUtil.isValidNumber(phoneNumber)) {
-                throw new IllegalArgumentException("Invalid Mobile Number or Region Code");
-            }
-            return true;
+            return !phoneUtil.isValidNumber(phoneNumber);
         } catch (NumberParseException e) {
             throw new IllegalArgumentException("Invalid Mobile Number Format or Region Code");
         }

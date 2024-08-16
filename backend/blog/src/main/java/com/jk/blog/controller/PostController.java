@@ -24,6 +24,7 @@ import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -119,6 +120,11 @@ public class PostController {
 
         this.userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("Post", "userId", userId));
         PostRequestBody postJSON = new ObjectMapper().readValue(updatesJson, new TypeReference<>() {});
+
+        // Need to check whether we are going to store all images and videos
+        // or delete existing one and store the new one
+        // or do something else
+
         if (image != null && !image.isEmpty()) {
             String imageUrl = fileService.uploadImage(path, image);
             postJSON.setImageUrl(imageUrl);
@@ -135,7 +141,7 @@ public class PostController {
     public ResponseEntity<PostStatusResponse> togglePostVisibility(@PathVariable Long postId, @RequestBody Map<String, Boolean> visibility) {
         boolean isLive = visibility.getOrDefault("isLive", false);
         PostResponseBody postResponseBody = this.postService.togglePostVisibility(postId, isLive);
-        APIResponse apiResponse = new APIResponse("isLive updated Successfully", true);
+        APIResponse apiResponse = new APIResponse(true, "isLive updated Successfully");
         PostStatusResponse response = new PostStatusResponse(apiResponse, postResponseBody);
         return ResponseEntity.ok(response);
     }
@@ -144,13 +150,13 @@ public class PostController {
     public ResponseEntity<APIResponse> deletePost(@PathVariable Long userId, @PathVariable Long postId) {
         this.userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("Post", "userId", userId));
         this.postService.deletePost(postId);
-        return new ResponseEntity<>(new APIResponse("Post Deleted Successfully", true), HttpStatus.OK);
+        return new ResponseEntity<>(new APIResponse(true, "Post Deleted Successfully"), HttpStatus.OK);
     }
 
     @PatchMapping(value = "/post/{postId}/deactivate")
     public ResponseEntity<PostStatusResponse> patchPostDeactivate(@PathVariable Long postId) throws IOException {
         PostResponseBody postResponseBody = this.postService.deactivatePost(postId);
-        APIResponse apiResponse = new APIResponse("Post Deactivated Successfully", true);
+        APIResponse apiResponse = new APIResponse(true, "Post Deactivated Successfully");
         PostStatusResponse response = new PostStatusResponse(apiResponse, postResponseBody);
         return ResponseEntity.ok(response);
     }
@@ -158,7 +164,7 @@ public class PostController {
     @PatchMapping(value = "/post/{postId}/activate")
     public ResponseEntity<PostStatusResponse> patchPostActivate(@PathVariable Long postId) throws IOException {
         PostResponseBody postResponseBody = this.postService.activatePost(postId);
-        APIResponse apiResponse = new APIResponse("Post Activated Successfully", true);
+        APIResponse apiResponse = new APIResponse(true, "Post Activated Successfully");
         PostStatusResponse response = new PostStatusResponse(apiResponse, postResponseBody);
         return ResponseEntity.ok(response);
     }
@@ -181,28 +187,14 @@ public class PostController {
         return new ResponseEntity<>(postResponseBodyList, HttpStatus.OK);
     }
 
-//    @PostMapping("/image/upload/{postId}")
-//    public ResponseEntity<PostResponseBody> uploadPostImage(@RequestParam("image") MultipartFile image,
-//                                                         @PathVariable Long postId) throws IOException {
-//        PostResponseBody postResponseBody = this.postService.getPostById(postId);
-//
-    //        String imageFileName = this.fileService.uploadImage(path, image);
-//
-//        PostRequestBody postRequestBody = this.modelMapper.map(postResponseBody, PostRequestBody.class);
-//        postRequestBody.setImageUrl(imageFileName);
-//
-//        PostResponseBody updatedResponse = this.postService.updatePost(postRequestBody, postId);
-//        return new ResponseEntity<>(updatedResponse, HttpStatus.OK);
-//    }
-
     @PostMapping("/image/upload")
-    public ResponseEntity<String> uploadPostImage(@RequestParam("image") MultipartFile image) throws IOException {
+    public ResponseEntity<String> uploadPostImage(@RequestPart("image") MultipartFile image) throws IOException {
         String imageFileName = this.fileService.uploadImage(path, image);
         return new ResponseEntity<>(imageFileName, HttpStatus.OK); // Consider returning a full URL or a reference ID
     }
 
     @PostMapping("/video/upload")
-    public ResponseEntity<String> uploadPostVideo(@RequestParam("video") MultipartFile video) throws IOException {
+    public ResponseEntity<String> uploadPostVideo(@RequestPart("video") MultipartFile video) throws IOException {
         String videoFileName = this.fileService.uploadVideo(path, video);
         return new ResponseEntity<>(videoFileName, HttpStatus.OK); // Consider returning a full URL or a reference ID
     }
