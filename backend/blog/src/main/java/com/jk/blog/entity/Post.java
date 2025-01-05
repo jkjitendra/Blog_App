@@ -40,6 +40,9 @@ public class Post {
     private Instant postDeletionTimestamp;
 
     @Column(nullable = false)
+    private boolean isMemberPost;
+
+    @Column(nullable = false)
     private boolean isLive = true; // Default value set to true
 
     @ManyToOne
