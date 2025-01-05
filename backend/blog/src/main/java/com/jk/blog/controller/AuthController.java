@@ -74,11 +74,13 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new APIResponse<>(false, "Invalid credentials", null, e.getMessage()));
         }
-//        final UserDetails userDetails = userDetailsService.loadUserByUsername(authRequest.getEmail());
-        AuthResponse authResponse = authService.login(authRequest);
+        // generate accessToken
+        AuthResponse authResponse = authService.generateAccessToken(authRequest);
+        // generate refreshToken
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(authRequest.getEmail());
 
         // Set the refresh token as an HTTP-only cookie
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", authResponse.getRefreshToken())
+        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", refreshToken.getRefreshToken())
                 .httpOnly(true)
                 .secure(isCookieSecure)
                 .path("/")
@@ -90,7 +92,6 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
                 .body(new APIResponse<>(true, "Login successful", AuthResponse.builder().accessToken(authResponse.getAccessToken()).build()));
     }
-
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletResponse response) {

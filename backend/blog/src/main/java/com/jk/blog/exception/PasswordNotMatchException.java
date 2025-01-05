@@ -16,4 +16,11 @@ public class PasswordNotMatchException extends RuntimeException {
         this.fieldName = fieldName;
         this.fieldValue = fieldValue;
     }
+
+    public PasswordNotMatchException(String fieldName, String fieldValue) {
+        super(String.format("%s does not match with repeatPassword : %s", fieldName, fieldValue));
+        this.resourceName = resourceName;
+        this.fieldName = fieldName;
+        this.fieldValue = fieldValue;
+    }
 }

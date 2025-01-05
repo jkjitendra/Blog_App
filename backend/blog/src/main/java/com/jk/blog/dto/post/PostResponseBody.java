@@ -24,6 +24,8 @@ public class PostResponseBody {
 
     private String videoUrl;
 
+    private boolean isMemberPost;
+
     private String postCreatedDate;
 
     private String postLastUpdatedDate;

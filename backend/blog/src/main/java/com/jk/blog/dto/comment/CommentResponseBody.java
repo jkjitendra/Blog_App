@@ -20,6 +20,8 @@ public class CommentResponseBody {
 
     private String commentLastUpdatedDate;
 
+    private boolean isMemberComment;
+
     private boolean isCommentDeleted;
 
     private String commentDeletionTimestamp;
