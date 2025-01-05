@@ -7,8 +7,10 @@ import com.jk.blog.dto.post.PostRequestBody;
 import com.jk.blog.dto.post.PostResponseBody;
 import com.jk.blog.entity.*;
 import com.jk.blog.exception.ResourceNotFoundException;
+import com.jk.blog.exception.UnAuthorizedException;
 import com.jk.blog.repository.*;
 import com.jk.blog.service.PostService;
+import com.jk.blog.utils.AuthUtil;
 import com.jk.blog.utils.DateTimeUtil;
 import com.jk.blog.dto.post.PostMapper;
 import org.modelmapper.ModelMapper;
@@ -17,6 +19,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,14 +49,19 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public PostResponseBody createPost(Long userId, PostRequestBody postRequestBody) {
 
-        User user = this.userRepository
-                        .findById(userId)
-                        .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
+        // Get the authenticated user
+        User user = AuthUtil.getAuthenticatedUser();
+        if (user == null) {
+            throw new UnAuthorizedException("User must be logged in to create a post.");
+        }
         Category category = this.categoryRepository
                                 .findById(postRequestBody.getCategoryId())
                                 .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryId", postRequestBody.getCategoryId()));
 
         Post post = PostMapper.postRequestBodyToPost(postRequestBody, user, category);
+
+        // 🔹 Set member post status based on user role
+        post.setMemberPost(AuthUtil.userHasRole(user, "SUBSCRIBER"));
 
         if (postRequestBody.getTagNames() != null && !postRequestBody.getTagNames().isEmpty()) {
             Set<Tag> tags = postRequestBody.getTagNames().stream()
@@ -67,6 +76,7 @@ public class PostServiceImpl implements PostService {
         PostResponseBody postResponseBody = this.modelMapper.map(savedPost, PostResponseBody.class);
 
         postResponseBody.setIsLive(savedPost.isLive());
+        postResponseBody.setMemberPost(savedPost.isMemberPost());
 
         Set<String> tagNames = savedPost.getTags().stream()
                                         .map(Tag::getTagName)
@@ -96,9 +106,22 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional(readOnly = true)
     public PageableResponse<PostResponseBody> getAllPost(Integer pageNumber, Integer pageSize, String sortBy, String sortDirection) {
+
         Sort sort = sortDirection.equalsIgnoreCase(AppConstants.SORT_DIR) ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
-        Page<Post> pagePost = this.postRepository.findByIsLiveTrueAndIsPostDeletedFalse(pageable);
+
+        // Get authenticated user
+        User user = AuthUtil.getAuthenticatedUser();
+
+        Page<Post> pagePost;
+        if (user != null && AuthUtil.userHasRole(user, "SUBSCRIBER")) {
+            // If the user is a subscriber, fetch all posts
+            pagePost = this.postRepository.findByIsLiveTrueAndIsPostDeletedFalse(pageable);
+        } else {
+            // If the user is not a subscriber, fetch only public posts
+            pagePost = this.postRepository.findPublicPosts(pageable);
+        }
+
         List<Post> postList = pagePost.getContent();
         List<PostResponseBody> postResponseBodyList = postList.stream().map(existingPost -> {
             PostResponseBody postResponse = PostMapper.postToPostResponseBody(existingPost);

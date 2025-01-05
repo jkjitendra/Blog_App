@@ -6,10 +6,12 @@ import com.jk.blog.entity.Comment;
 import com.jk.blog.entity.Post;
 import com.jk.blog.entity.User;
 import com.jk.blog.exception.ResourceNotFoundException;
+import com.jk.blog.exception.UnAuthorizedException;
 import com.jk.blog.repository.CommentRepository;
 import com.jk.blog.repository.PostRepository;
 import com.jk.blog.repository.UserRepository;
 import com.jk.blog.service.CommentService;
+import com.jk.blog.utils.AuthUtil;
 import com.jk.blog.utils.DateTimeUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,18 +57,29 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public CommentResponseBody createComment(CommentRequestBody commentRequestBody, Long postId) {
+
+        // Get authenticated user
+        User user = AuthUtil.getAuthenticatedUser();
+
+        if (user == null) {
+            throw new UnAuthorizedException("User must be logged in to comment.");
+        }
+
         Post post = this.postRepository
                 .findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post", "postId", postId));
-        User user = this.userRepository
-                .findById(commentRequestBody.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "userId", commentRequestBody.getUserId()));
+
+        // 🔹 If the post is a "member-only" post, ensure the user is a subscriber
+        if (post.isMemberPost() && !AuthUtil.userHasRole(user, "SUBSCRIBER")) {
+            throw new UnAuthorizedException("Only subscribed members can comment on this post.");
+        }
 
         Comment comment = new Comment();
         comment.setCommentDesc(commentRequestBody.getCommentDesc());
         comment.setUser(user);
         comment.setPost(post);
         comment.setCommentCreatedDate(Instant.now());
+        comment.setMemberComment(post.isMemberPost());
 
         Comment savedComment = this.commentRepository.save(comment);
         return this.modelMapper.map(savedComment, CommentResponseBody.class);
