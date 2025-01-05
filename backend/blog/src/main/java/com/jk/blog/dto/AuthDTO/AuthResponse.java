@@ -1,15 +1,14 @@
 package com.jk.blog.dto.AuthDTO;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AuthResponse {
-  private String token;
 
-  public AuthResponse(String token) {
-    this.token = token;
-  }
+    private String accessToken;
+
 }
-
