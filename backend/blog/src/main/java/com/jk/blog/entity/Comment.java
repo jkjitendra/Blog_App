@@ -24,6 +24,9 @@ public class Comment {
 
     private Instant commentLastUpdatedDate;
 
+    @Column(nullable = false)
+    private boolean isMemberComment;
+
     private boolean isCommentDeleted = false;
 
     private Instant commentDeletionTimestamp;
