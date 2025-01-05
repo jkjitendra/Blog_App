@@ -19,6 +19,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     List<Post> findByCategory(Category category);
 
+    // Fetch only public posts for non-subscribers
+    @Query("SELECT p FROM Post p WHERE p.isMemberPost = false AND p.isLive = true AND p.isPostDeleted = false")
+    Page<Post> findPublicPosts(Pageable pageable);
+
     @Query("SELECT p FROM Post p WHERE p.postTitle like :patternKey")
     List<Post> searchKeyOnTitle(@Param("patternKey") String searchKey);
 
@@ -28,7 +32,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT p FROM Post p WHERE p.isPostDeleted = true AND p.postDeletionTimestamp <= :cutoff")
     List<Post> findPostsEligibleForPermanentDeletion(Instant cutoff);
 
+    // Fetch post by ID ensuring only live, non-deleted posts
+    @Query("SELECT p FROM Post p WHERE p.postId = :postId AND p.isLive = true AND p.isPostDeleted = false")
     Optional<Post> findByPostIdAndIsLiveTrueAndIsPostDeletedFalse(Long postId);
 
+    // Fetch all posts (public + member) for authenticated users
     Page<Post> findByIsLiveTrueAndIsPostDeletedFalse(Pageable pageable);
 }
