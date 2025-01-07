@@ -22,7 +22,7 @@ public class UserMapper {
         UserResponseBody userResponseBody = new UserResponseBody();
         userResponseBody.setId(user.getUserId());
         userResponseBody.setName(user.getName());
-        userResponseBody.setUserName(user.getUserName());
+        userResponseBody.setUserName(user.getUsername());
         userResponseBody.setEmail(user.getEmail());
         userResponseBody.setMobile(user.getMobile());
         userResponseBody.setCountryName(user.getCountryName());
