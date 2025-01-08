@@ -1,20 +1,17 @@
 package com.jk.blog.service;
 
-import com.jk.blog.dto.user.UserCreateRequestBody;
-import com.jk.blog.dto.user.UserRequestBody;
-import com.jk.blog.dto.user.UserResponseBody;
+import com.jk.blog.dto.user.*;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface UserService {
 
-    UserResponseBody createUser(UserCreateRequestBody user);
-
     UserResponseBody updateUser(UserRequestBody user, Long userId);
 
-    UserResponseBody getUserById(Long userId);
+    Optional<UserResponseBody> findUserById(Long userId);
 
-    List<UserResponseBody> getAllUsers();
+    UserResponseWithTokenDTO updatePassword(Long id, PasswordUpdateDTO passwordUpdateDTO);
 
     void deleteUser(Long userId);
 
@@ -24,7 +21,5 @@ public interface UserService {
 
     boolean checkUsernameAvailability(String username);
 
-//    void initiatePasswordReset(String email);
-//    void verifyAndResetPassword(String token, String newPassword, String email);
 
 }
