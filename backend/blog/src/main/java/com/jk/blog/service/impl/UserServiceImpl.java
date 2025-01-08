@@ -1,23 +1,27 @@
 package com.jk.blog.service.impl;
 
-import com.jk.blog.dto.user.UserCreateRequestBody;
-import com.jk.blog.dto.user.UserRequestBody;
-import com.jk.blog.dto.user.UserResponseBody;
+import com.jk.blog.dto.user.*;
 import com.jk.blog.entity.Profile;
 import com.jk.blog.entity.User;
 import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.repository.UserRepository;
+import com.jk.blog.security.AuthenticationFacade;
 import com.jk.blog.service.UserService;
 import com.jk.blog.utils.CountryToRegionCodeUtil;
+import com.jk.blog.utils.JwtUtil;
 import com.jk.blog.utils.PhoneNumberValidationUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,45 +31,29 @@ public class UserServiceImpl implements UserService {
     private UserRepository userRepository;
     @Autowired
     private ModelMapper modelMapper;
-//    @Autowired
-//    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private AuthenticationFacade authenticationFacade;
+    @Autowired
+    private AuthenticationManager authenticationManager;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private JwtUtil jwtUtil;
 //    @Autowired
 //    private MailService mailService;
 //    @Autowired
 //    private PasswordResetService passwordResetService;
-
-    @Override
-    @Transactional
-    public UserResponseBody createUser(UserCreateRequestBody userCreateRequestBody) {
-        String regionCode = CountryToRegionCodeUtil.getCountryISOCode(userCreateRequestBody.getCountryName());
-        if (PhoneNumberValidationUtil.isValidPhoneNumber(userCreateRequestBody.getMobile(), regionCode)) {
-            throw new IllegalArgumentException("Invalid Mobile Number Format");
-        }
-//        User user = UserMapper.userRequestBodyToUser(userRequestBody);
-        User user = this.modelMapper.map(userCreateRequestBody, User.class);
-        user.setMobile(PhoneNumberValidationUtil.getPhoneNumber(regionCode, userCreateRequestBody.getMobile()));
-        user.setUserCreatedDate(Instant.now());
-        Profile profile = new Profile();
-        profile.setUser(user); // Associate profile with the user
-        user.setProfile(profile);
-
-        User savedUser = this.userRepository.save(user);
-//        return UserMapper.userToUserResponseBody(savedUser);
-        return this.modelMapper.map(savedUser, UserResponseBody.class);
-    }
-
     @Override
     @Transactional(readOnly = true)
-    public UserResponseBody getUserById(Long userId) {
+    public Optional<UserResponseBody> findUserById(Long userId) {
         User user = this.userRepository
                         .findById(userId)
                         .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
 
 //        return UserMapper.userToUserResponseBody(user);
-        return this.modelMapper.map(user, UserResponseBody.class);
+        return Optional.of(this.modelMapper.map(user, UserResponseBody.class));
     }
 
-    @Override
     @Transactional(readOnly = true)
     public List<UserResponseBody> getAllUsers() {
         List<User> usersList = this.userRepository.findAll();
@@ -104,7 +92,39 @@ public class UserServiceImpl implements UserService {
         User user = this.userRepository
                         .findById(userId)
                         .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
-        this.userRepository.delete(user);
+        user.setUserDeleted(true);
+        user.setUserDeletionTimestamp(Instant.now());
+        this.userRepository.save(user);
+    }
+
+    @Transactional
+    @Override
+    public UserResponseWithTokenDTO updatePassword(Long id, PasswordUpdateDTO passwordUpdateDTO) {
+        String authenticatedUsername = authenticationFacade.getAuthenticatedUsername();
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+
+        if (!user.getEmail().equals(authenticatedUsername)) {
+            throw new SecurityException("Unauthorized: You can only change your own password.");
+        }
+
+        // Verify the old password
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(user.getEmail(), passwordUpdateDTO.getOldPassword())
+            );
+        } catch (Exception e) {
+            throw new SecurityException("Incorrect old password");
+        }
+
+        // Encode and update the new password
+        user.setPassword(passwordEncoder.encode(passwordUpdateDTO.getNewPassword()));
+        userRepository.save(user);
+
+        // Generate a new JWT token for the user
+        String newAccessToken = jwtUtil.generateToken(user.getUsername());
+
+        return new UserResponseWithTokenDTO(UserMapper.userToUserResponseBody(user), newAccessToken);
     }
 
     @Override
