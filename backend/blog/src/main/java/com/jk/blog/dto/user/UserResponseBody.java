@@ -1,7 +1,7 @@
 package com.jk.blog.dto.user;
 
-import com.jk.blog.dto.RoleDTO;
 import com.jk.blog.dto.profile.ProfileResponseBody;
+import com.jk.blog.entity.Role;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -38,6 +38,6 @@ public class UserResponseBody {
 
     private String userDeletionTimestamp;
 
-    private Set<RoleDTO> roles = new HashSet<>();
+    private Set<Role> roles = new HashSet<>();
 
 }
