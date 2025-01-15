@@ -8,4 +8,8 @@ public interface AuthenticationFacade {
 
     String getAuthenticatedUsername();
 
+    Long getAuthenticatedUserId();
+
+    boolean hasRole(String role);
+
 }
