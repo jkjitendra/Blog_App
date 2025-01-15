@@ -16,6 +16,6 @@ public class GeneratorUtils {
     public static String generateRefreshToken() {
         byte[] randomBytes = new byte[32]; // 256 bits
         secureRandom.nextBytes(randomBytes);
-        return base64Encoder.encodeToString(randomBytes);
+        return base64Encoder.withoutPadding().encodeToString(randomBytes);
     }
 }

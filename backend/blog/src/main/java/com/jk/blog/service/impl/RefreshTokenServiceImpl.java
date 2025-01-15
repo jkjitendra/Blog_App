@@ -33,14 +33,25 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     public RefreshToken createRefreshToken(String email) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
 
-        // Delete existing refresh token if present
-        refreshTokenRepository.findByUser(user).ifPresent(refreshTokenRepository::delete);
+        // Check if the user already has a refresh token
+        RefreshToken existingToken = refreshTokenRepository.findByUser(user).orElse(null);
 
-        // Create a new refresh token
+        if (existingToken != null) {
+            // Update existing refresh token
+            existingToken.setRefreshToken(GeneratorUtils.generateRefreshToken());
+            System.out.println("Current Time: " + Instant.now());
+            existingToken.setExpirationTime(Instant.now().plusSeconds(refreshExpirationTime/1000));
+            System.out.println(" refresh token:- " + existingToken.getRefreshToken() + " Expiration token:- " + existingToken.getExpirationTime());
+            return refreshTokenRepository.save(existingToken);
+        }
+
+        // If no existing refresh token, Create a new one
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setRefreshToken(GeneratorUtils.generateRefreshToken());
-        refreshToken.setExpirationTime(Instant.now().plusSeconds(refreshExpirationTime));
+        System.out.println("Current Time: " + Instant.now());
+        refreshToken.setExpirationTime(Instant.now().plusSeconds(refreshExpirationTime/1000));
         refreshToken.setUser(user);
+        System.out.println(" refresh token:- " + refreshToken.getRefreshToken() + " Expiration token:- " + refreshToken.getExpirationTime());
 
         refreshTokenRepository.save(refreshToken);
         return refreshToken;
@@ -56,6 +67,9 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
             refreshTokenRepository.delete(rfToken);
             throw new TokenExpiredException("refreshToken");
         }
+
+        // Force initialization of permissions to avoid LazyInitializationException
+//        rfToken.getUser().getRoles().forEach(role -> Hibernate.initialize(role.getPermissions()));
 
         return rfToken;
     }
