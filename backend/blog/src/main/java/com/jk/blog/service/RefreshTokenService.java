@@ -5,7 +5,7 @@ import com.jk.blog.entity.RefreshToken;
 
 public interface RefreshTokenService {
 
-    RefreshToken createRefreshToken(String email);
+    RefreshToken createRefreshToken(String login);
 
     RefreshToken verifyRefreshToken(String refreshToken);
 

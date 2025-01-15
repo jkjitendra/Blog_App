@@ -98,78 +98,11 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse generateAccessToken(AuthRequest authRequest) {
-        final User user = userRepository.findByEmail(authRequest.getEmail())
-                                        .orElseThrow(() -> new ResourceNotFoundException("User", "email", authRequest.getEmail()));
+        final User user = userRepository.findByEmail(authRequest.getLogin())
+                                        .orElseThrow(() -> new ResourceNotFoundException("User", "email/username", authRequest.getLogin()));
         final String accessToken = jwtUtil.generateToken(user.getUsername());
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .build();
     }
-
-
-    @Override
-    @Transactional
-    public void forgotPassword(String email) {
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
-        int otp = GeneratorUtils.generateOTP();
-        MailBody mailBody = MailBody.builder()
-                .to(email)
-                .subject(EMAIL_OTP_SUBJECT)
-                .text(EMAIL_OTP_TEXT + otp)
-                .build();
-
-        PasswordResetToken token = new PasswordResetToken();
-        token.setOtp(otp);
-        token.setUser(user);
-        token.setVerified(false);
-        token.setExpirationTime(Instant.now().plusSeconds(otpExpirationTime)); // OTP expires in 5 mins
-        passwordResetTokenRepository.save(token);
-
-        try {
-            emailService.sendEmail(mailBody);
-        } catch (MailException e) {
-            throw new EmailSendingException(email, "Failed to send email", e);
-        }
-
-    }
-
-    @Override
-    @Transactional
-    public void verifyOTP(Integer otp, String email) {
-
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
-
-        PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByOtpAndUser(otp, user)
-                .orElseThrow(() -> new InvalidTokenException("otp", "Invalid OTP Received"));
-
-        if (passwordResetToken.getExpirationTime().isBefore(Instant.now())) {
-            passwordResetTokenRepository.deleteById(passwordResetToken.getId());
-            throw new TokenExpiredException(String.valueOf(otp), passwordResetToken.getExpirationTime().toString());
-        }
-        passwordResetToken.setVerified(true);
-        passwordResetTokenRepository.save(passwordResetToken);
-    }
-
-    @Override
-    @Transactional
-    public void resetPassword(ResetPasswordDTO resetPasswordDTO, String email) {
-
-        User existingUser = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
-
-        PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByUserAndVerified(existingUser)
-                .orElseThrow(() -> new InvalidTokenException("token", "No verified password reset token found"));
-
-
-        if (!Objects.equals(resetPasswordDTO.getNewPassword(), resetPasswordDTO.getRepeatPassword())) {
-            throw new PasswordNotMatchException("newPassword", resetPasswordDTO.getNewPassword());
-        }
-
-        String encodedPassword = passwordEncoder.encode(resetPasswordDTO.getNewPassword());
-        userRepository.updatePassword(email, encodedPassword);
-
-        // Delete the password reset token after successful password reset
-        passwordResetTokenRepository.deleteByUser(existingUser);
-    }
-
-
 }
