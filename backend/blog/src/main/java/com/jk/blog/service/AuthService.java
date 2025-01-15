@@ -12,9 +12,4 @@ public interface AuthService {
 
     AuthResponse generateAccessToken(AuthRequest authRequest);
 
-    void forgotPassword(String email);
-
-    void verifyOTP(Integer otp, String email);
-
-    void resetPassword(ResetPasswordDTO resetPasswordDTO, String email);
 }

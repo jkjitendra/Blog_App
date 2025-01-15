@@ -1,6 +1,6 @@
 package com.jk.blog.dto.AuthDTO;
 
-import jakarta.validation.constraints.Email;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
@@ -8,9 +8,9 @@ import lombok.*;
 @Setter
 public class AuthRequest {
 
-    @Email(message = "Invalid email format")
-    @NotBlank(message = "Email cannot be blank")
-    String email;
+    @JsonAlias({"email", "username"})
+    @NotBlank(message = "Email or Username cannot be blank")
+    String login; // Accepts either email or username
 
     @NotBlank(message = "Password cannot be blank")
     String password;
