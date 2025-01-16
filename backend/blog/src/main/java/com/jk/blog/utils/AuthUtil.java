@@ -38,6 +38,6 @@ public class AuthUtil {
      * @return true if the user has the role, false otherwise.
      */
     public static boolean userHasRole(User user, String role) {
-        return user.getRoles().stream().anyMatch(r -> r.getName().equals(role));
+        return user.getRoles().stream().anyMatch(r -> r.getName().equals("ROLE_" + role));
     }
 }

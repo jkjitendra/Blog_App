@@ -10,6 +10,5 @@ public interface AuthenticationFacade {
 
     Long getAuthenticatedUserId();
 
-    boolean hasRole(String role);
-
+    boolean hasAnyRole(String... roles);
 }
