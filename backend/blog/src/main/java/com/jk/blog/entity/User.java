@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "users")
@@ -31,7 +32,7 @@ public class User implements UserDetails {
     @NotBlank(message = "name can't be blank")
     private String name;
 
-    @Column(nullable = false)
+    @Column(unique = true, nullable = false)
     @NotBlank(message = "email can't be blank")
     private String email;
 
@@ -39,7 +40,7 @@ public class User implements UserDetails {
     @NotBlank(message = "password can't be blank")
     private String password;
 
-    @Column(nullable = false)
+    @Column(unique = true, nullable = false)
     @NotBlank(message = "mobile number can't be blank")
     private String mobile;
 
@@ -84,17 +85,26 @@ public class User implements UserDetails {
     }
 
 
+//    @Override
+//    public Collection<? extends GrantedAuthority> getAuthorities() {
+//        return List.of(new SimpleGrantedAuthority(getRoles().toString()));
+//    }
+// Fetch permissions dynamically from roles
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(getRoles().toString()));
+        return roles.stream()
+                .flatMap(role -> role.getPermissions().stream())
+                .map(permission -> new SimpleGrantedAuthority(permission.getName()))
+                .collect(Collectors.toSet());
     }
+
     @Override
     public String getPassword() {
         return password;
     }
     @Override
     public String getUsername() {
-        return email;
+        return userName;
     }
     @Override
     public boolean isAccountNonExpired() {
