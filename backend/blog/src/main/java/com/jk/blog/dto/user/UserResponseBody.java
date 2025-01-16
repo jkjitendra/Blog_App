@@ -38,6 +38,6 @@ public class UserResponseBody {
 
     private String userDeletionTimestamp;
 
-    private Set<Role> roles = new HashSet<>();
+    private Set<String> roles = new HashSet<>();
 
 }
