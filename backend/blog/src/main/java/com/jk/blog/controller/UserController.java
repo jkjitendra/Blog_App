@@ -1,7 +1,7 @@
 package com.jk.blog.controller;
 
 import com.jk.blog.dto.APIResponse;
-import com.jk.blog.dto.user.PasswordUpdateDTO;
+import com.jk.blog.dto.user.UpdatePasswordDTO;
 import com.jk.blog.dto.user.UserRequestBody;
 import com.jk.blog.dto.user.UserResponseBody;
 import com.jk.blog.dto.user.UserResponseWithTokenDTO;
@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -27,56 +28,71 @@ public class UserController {
     private AuthenticationFacade authenticationFacade;
 
     @PreAuthorize("isAuthenticated()")
-    @GetMapping("/{id}")
-    public ResponseEntity<APIResponse<Optional<UserResponseBody>>> getUserDetails(@PathVariable Long id) {
-        String username = authenticationFacade.getAuthenticatedUsername();
-        Optional<UserResponseBody> user = userService.findUserById(id);
-        if (user.isPresent() && user.get().getEmail().equals(username)) {
-            return new ResponseEntity<>(new APIResponse<>(true, "User fetched successfully", user), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(new APIResponse<>(false, "Access denied"), HttpStatus.FORBIDDEN);
-        }
+    @GetMapping("/me")
+    public ResponseEntity<APIResponse<UserResponseBody>> getOwnDetails() {
+        Long userId = authenticationFacade.getAuthenticatedUserId();
+        Optional<UserResponseBody> user = userService.findUserById(userId);
+
+        return user.map(responseBody ->
+                        ResponseEntity.ok(new APIResponse<>(true, "User fetched successfully", responseBody)))
+                .orElseGet(() ->
+                        ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                .body(new APIResponse<>(false, "User not found")));
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('USER_MANAGE')")
+    @GetMapping
+    public ResponseEntity<APIResponse<UserResponseBody>> getUserByEmail(@RequestParam String email) {
+        Optional<UserResponseBody> user = userService.findUserByEmail(email);
+
+        return user.map(responseBody ->
+                        ResponseEntity.ok(new APIResponse<>(true, "User fetched successfully", responseBody)))
+                .orElseGet(() ->
+                        ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                .body(new APIResponse<>(false, "User not found")));
+    }
+
+    /**
+     * ✅ Admins can fetch a list of all users.
+     */
+    @PreAuthorize("hasAuthority('USER_MANAGE')")
+    @GetMapping("/all")
+    public ResponseEntity<APIResponse<List<UserResponseBody>>> getAllUsers() {
+        List<UserResponseBody> users = userService.getAllUsers();
+        return ResponseEntity.ok(new APIResponse<>(true, "All users fetched successfully", users));
+    }
+
+    /**
+     * ✅ Users can update their own details.
+     * ✅ Admins can update any user's details.
+     */
+    @PreAuthorize("#id == authenticationFacade.getAuthenticatedUserId() or hasAuthority('USER_MANAGE')")
     @PutMapping("/{id}")
-    public ResponseEntity<APIResponse<UserResponseBody>> updateUserDetails(@PathVariable Long id, @Valid @RequestBody UserRequestBody userRequestDTO) {
-        String username = authenticationFacade.getAuthenticatedUsername();
-        Optional<UserResponseBody> user = userService.findUserById(id);
-        if (user.isPresent() && user.get().getEmail().equals(username)) {
-            UserResponseBody updatedUser = userService.updateUser(userRequestDTO, id);
-            return ResponseEntity.ok(new APIResponse<>(true, "User updated successfully", updatedUser));
-        } else {
-            return new ResponseEntity<>(new APIResponse<>(false, "Access denied"), HttpStatus.FORBIDDEN);
-        }
+    public ResponseEntity<APIResponse<UserResponseBody>> updateUser(@PathVariable Long id,
+                                                                    @Valid @RequestBody UserRequestBody userRequestDTO) {
+        UserResponseBody updatedUser = userService.updateUser(userRequestDTO, id);
+        return ResponseEntity.ok(new APIResponse<>(true, "User updated successfully", updatedUser));
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("#id == authenticationFacade.getAuthenticatedUserId()")
     @PutMapping("/{id}/update-password")
-    public ResponseEntity<APIResponse<UserResponseWithTokenDTO>> updatePassword(@PathVariable Long id, @Valid @RequestBody PasswordUpdateDTO passwordUpdateDTO) {
-        String username = authenticationFacade.getAuthenticatedUsername();
-        Optional<UserResponseBody> user = userService.findUserById(id);
-        if (user.isPresent() && user.get().getEmail().equals(username)) {
-            UserResponseWithTokenDTO userResponseDTO = userService.updatePassword(id, passwordUpdateDTO);
-            return ResponseEntity.ok(new APIResponse<>(true, "Password updated successfully", userResponseDTO));
-        } else {
-            return new ResponseEntity<>(new APIResponse<>(false, "Access denied"), HttpStatus.FORBIDDEN);
-        }
+    public ResponseEntity<APIResponse<UserResponseWithTokenDTO>> updatePassword(@PathVariable Long id,
+                                                                                @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO) {
+        UserResponseWithTokenDTO userResponseDTO = userService.updatePassword(id, updatePasswordDTO);
+        return ResponseEntity.ok(new APIResponse<>(true, "Password updated successfully", userResponseDTO));
     }
 
-
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("#id == authenticationFacade.getAuthenticatedUserId() or hasAuthority('USER_MANAGE')")
     @DeleteMapping("/{id}")
     public ResponseEntity<APIResponse<Void>> deleteUser(@PathVariable Long id) {
-        String username = authenticationFacade.getAuthenticatedUsername();
-        Optional<UserResponseBody> user = userService.findUserById(id);
-        if (user.isPresent() && user.get().getEmail().equals(username)) {
-            userService.deleteUser(id);
-            return ResponseEntity.ok(new APIResponse<>(true, "User deleted successfully"));
-        } else {
-            return new ResponseEntity<>(new APIResponse<>(false, "Access denied"), HttpStatus.FORBIDDEN);
-        }
+        userService.deleteUser(id);
+        return ResponseEntity.ok(new APIResponse<>(true, "User deleted successfully"));
     }
 
-
+    @PreAuthorize("#id == authenticationFacade.getAuthenticatedUserId() or hasAuthority('USER_MANAGE')")
+    @PostMapping("/{id}/deactivate")
+    public ResponseEntity<APIResponse<Void>> deactivateUser(@PathVariable Long id) {
+        userService.deactivateUserAccount(id);
+        return ResponseEntity.ok(new APIResponse<>(true, "User deactivated successfully"));
+    }
 }
