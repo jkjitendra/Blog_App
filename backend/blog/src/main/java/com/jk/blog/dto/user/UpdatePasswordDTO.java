@@ -8,7 +8,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class PasswordUpdateDTO {
+public class UpdatePasswordDTO {
 
     @NotBlank(message = "Old Password cannot be blank")
     private String oldPassword;
