@@ -3,6 +3,8 @@ package com.jk.blog.exception;
 import com.jk.blog.dto.APIResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.security.SignatureException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,8 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @Value("${app.debug}")
+    private boolean debugMode;
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleSecurityException(Exception exception) {
@@ -126,5 +130,94 @@ public class GlobalExceptionHandler {
     public ResponseEntity<APIResponse<String>> handleEmailSendingException(EmailSendingException ex) {
         APIResponse<String> apiResponse = new APIResponse<>(false, ex.getMessage());
         return new ResponseEntity<>(apiResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        String message = extractConstraintViolationMessage(ex);
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("success", false);
+        errorResponse.put("message", message);
+
+        // Include error details only in development/test mode
+        if (debugMode) {
+            errorResponse.put("errorDetails", ex.getRootCause().getMessage());
+        }
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    // Handle Rate Limit Exceptions
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<APIResponse<String>> handleRateLimitExceededException(RateLimitExceededException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new APIResponse<>(false, ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(RateLimitConfigurationException.class)
+    public ResponseEntity<APIResponse<String>> handleRateLimitConfigurationException(RateLimitConfigurationException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new APIResponse<>(false, ex.getMessage(), null));
+    }
+
+    // Handle Invalid Country Exception
+    @ExceptionHandler(InvalidCountryException.class)
+    public ResponseEntity<APIResponse<String>> handleInvalidCountryException(InvalidCountryException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new APIResponse<>(false, ex.getMessage(), null));
+    }
+
+    // Handle Invalid Phone Number Exception
+    @ExceptionHandler(InvalidPhoneNumberException.class)
+    public ResponseEntity<APIResponse<String>> handleInvalidPhoneNumberException(InvalidPhoneNumberException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new APIResponse<>(false, ex.getMessage(), null));
+    }
+
+    // Handle Directory Creation Exception
+    @ExceptionHandler(DirectoryCreationException.class)
+    public ResponseEntity<APIResponse<String>> handleDirectoryCreationException(DirectoryCreationException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new APIResponse<>(false, ex.getMessage(), null));
+    }
+
+    // Handle Invalid File Exception
+    @ExceptionHandler(InvalidFileException.class)
+    public ResponseEntity<APIResponse<String>> handleInvalidFileException(InvalidFileException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new APIResponse<>(false, ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(InvalidPostStateException.class)
+    public ResponseEntity<APIResponse<String>> handleInvalidPostStateException(InvalidPostStateException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new APIResponse<>(false, ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(FieldUpdateNotAllowedException.class)
+    public ResponseEntity<APIResponse<String>> handleFieldUpdateNotAllowedException(FieldUpdateNotAllowedException ex) {
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new APIResponse<>(false, ex.getMessage(), null));
+    }
+
+    /**
+     * Extracts user-friendly messages from DataIntegrityViolationException based on constraint violations.
+     */
+    private String extractConstraintViolationMessage(DataIntegrityViolationException ex) {
+        String errorMessage = ex.getRootCause().getMessage();
+
+        if (errorMessage.contains("Unique index or primary key violation")) {
+            if (errorMessage.contains("USERS(MOBILE")) {
+                return "The mobile number you entered is already registered. Please use a different number.";
+            } else if (errorMessage.contains("USERS(EMAIL")) {
+                return "The email address you entered is already registered. Try logging in instead.";
+            } else if (errorMessage.contains("USERS(USER_NAME")) {
+                return "This username is already taken. Please choose another one.";
+            }
+        }
+
+        return "A database constraint violation occurred. Please check your input.";
     }
 }

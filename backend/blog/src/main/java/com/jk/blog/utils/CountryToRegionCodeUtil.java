@@ -1,5 +1,7 @@
 package com.jk.blog.utils;
 
+import com.jk.blog.exception.InvalidCountryException;
+
 import java.util.*;
 
 public class CountryToRegionCodeUtil {
@@ -16,8 +18,7 @@ public class CountryToRegionCodeUtil {
                 return countryCode.get();
             }
         }
-        throw new IllegalArgumentException("Invalid Country Name or Country Name Not Found.");
-
+        throw new InvalidCountryException("Invalid Country Name: " + countryName);
     }
 
     public static boolean isValidCountryName(String countryName) {
