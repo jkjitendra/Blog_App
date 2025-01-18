@@ -3,6 +3,7 @@ package com.jk.blog.utils;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
+import com.jk.blog.exception.InvalidPhoneNumberException;
 
 
 public class PhoneNumberValidationUtil {
@@ -38,7 +39,7 @@ public class PhoneNumberValidationUtil {
             Phonenumber.PhoneNumber phoneNumber = phoneNumberUtil.parse(mobile, countryCode);
             return phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.E164);  // +918888881212 format
         } catch (NumberParseException e) {
-            throw new IllegalArgumentException("Invalid Mobile Number Format for region: " + countryCode);
+            throw new InvalidPhoneNumberException("Invalid Mobile Number Format for region: " + countryCode);
         }
     }
 }
