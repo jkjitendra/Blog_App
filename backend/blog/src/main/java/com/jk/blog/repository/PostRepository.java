@@ -17,14 +17,16 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     List<Post> findByUser(User user);
 
-    List<Post> findByCategory(Category category);
+    Page<Post> findByUser(User user, Pageable pageable);
+
+    Page<Post> findByCategory(Category category, Pageable pageable);
+
+    @Query("SELECT p FROM Post p WHERE p.postTitle like :patternKey")
+    Page<Post> searchKeyOnTitle(@Param("patternKey") String searchKey, Pageable pageable);
 
     // Fetch only public posts for non-subscribers
     @Query("SELECT p FROM Post p WHERE p.isMemberPost = false AND p.isLive = true AND p.isPostDeleted = false")
     Page<Post> findPublicPosts(Pageable pageable);
-
-    @Query("SELECT p FROM Post p WHERE p.postTitle like :patternKey")
-    List<Post> searchKeyOnTitle(@Param("patternKey") String searchKey);
 
     @Query("SELECT p FROM Post p WHERE p.isPostDeleted = false OR (p.isPostDeleted = true AND p.postDeletionTimestamp > :cutoff)")
     List<Post> findActiveOrRecoverablePosts(Instant cutoff);
@@ -34,8 +36,18 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     // Fetch post by ID ensuring only live, non-deleted posts
     @Query("SELECT p FROM Post p WHERE p.postId = :postId AND p.isLive = true AND p.isPostDeleted = false")
-    Optional<Post> findByPostIdAndIsLiveTrueAndIsPostDeletedFalse(Long postId);
+    Optional<Post> findByPostIdAndIsLiveTrueAndIsPostDeletedFalse(@Param("postId") Long postId);
 
     // Fetch all posts (public + member) for authenticated users
     Page<Post> findByIsLiveTrueAndIsPostDeletedFalse(Pageable pageable);
+
+    @Query("SELECT p FROM Post p WHERE p.isArchived = false AND p.isLive = true AND p.isPostDeleted = false")
+    Page<Post> findActiveAndUnarchivedPosts(Pageable pageable);
+
+    @Query("SELECT p FROM Post p WHERE p.postId = :postId AND p.isLive = true AND p.isArchived = false AND p.isPostDeleted = false")
+    Optional<Post> findActiveAndUnarchivedPostsById(@Param("postId") Long postId);
+
+    @Query("SELECT p FROM Post p WHERE p.isArchived = true AND p.isLive = true AND p.isPostDeleted = false")
+    Page<Post> findActiveAndArchivedPosts(Pageable pageable);
+
 }

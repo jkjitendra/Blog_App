@@ -32,6 +32,8 @@ public class PostResponseBody {
 
     private boolean isPostDeleted;
 
+    private boolean isArchived;
+
     private String postDeletionTimestamp;
 
     private Long userId;
