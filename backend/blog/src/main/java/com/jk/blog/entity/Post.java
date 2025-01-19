@@ -37,6 +37,8 @@ public class Post {
 
     private boolean isPostDeleted = false;
 
+    private boolean isArchived = false;
+
     private Instant postDeletionTimestamp;
 
     @Column(nullable = false)

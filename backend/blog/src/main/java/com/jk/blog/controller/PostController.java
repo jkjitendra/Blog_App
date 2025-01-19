@@ -3,10 +3,10 @@ package com.jk.blog.controller;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jk.blog.constants.AppConstants;
-import com.jk.blog.dto.*;
+import com.jk.blog.dto.APIResponse;
+import com.jk.blog.dto.PageableResponse;
 import com.jk.blog.dto.post.PostRequestBody;
 import com.jk.blog.dto.post.PostResponseBody;
-import com.jk.blog.dto.post.PostStatusResponse;
 import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.repository.UserRepository;
 import com.jk.blog.service.FileService;
@@ -20,14 +20,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -50,8 +49,9 @@ public class PostController {
     @Value("${project.files}")
     private String path;
 
+    @PreAuthorize("hasAuthority('POST_WRITE')")
     @PostMapping(value = "/user/{userId}/posts", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<PostResponseBody> createPost(
+    public ResponseEntity<APIResponse<PostResponseBody>> createPost(
                                                        @PathVariable Long userId,
                                                        @Valid @RequestPart("post") String postRequestBody,
                                                        @RequestPart(value = "image", required = false) MultipartFile image,
@@ -69,28 +69,29 @@ public class PostController {
         }
         PostResponseBody createdPostResponseBody = this.postService.createPost(userId, postJSON);
         System.out.println("createdPostResponseBody " + createdPostResponseBody);
-        return new ResponseEntity<>(createdPostResponseBody, HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new APIResponse<>(true, "Post created successfully"));
     }
 
     @GetMapping("/")
-    public ResponseEntity<PageableResponse<PostResponseBody>> getAllPost(
+    public ResponseEntity<APIResponse<PageableResponse<PostResponseBody>>> getAllPost(
                             @RequestParam(value = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
                             @RequestParam(value = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
                             @RequestParam(value = "sortBy", defaultValue = AppConstants.SORT_BY, required = false) String sortBy,
                             @RequestParam(value = "sortDirection", defaultValue = AppConstants.SORT_DIR, required = false) String sortDirection
                             ) {
         PageableResponse<PostResponseBody> pageableResponse = this.postService.getAllPost(pageNumber, pageSize, sortBy, sortDirection);
-        return new ResponseEntity<>(pageableResponse, HttpStatus.OK);
+        return ResponseEntity.ok(new APIResponse<>(true, "Posts fetched successfully", pageableResponse));
     }
 
     @GetMapping("/{postId}")
-    public ResponseEntity<PostResponseBody> getPostById(@PathVariable Long postId) {
+    public ResponseEntity<APIResponse<PostResponseBody>> getPostById(@PathVariable Long postId) {
         PostResponseBody existingPostRequestBody = this.postService.getPostById(postId);
-        return new ResponseEntity<>(existingPostRequestBody, HttpStatus.OK);
+        return ResponseEntity.ok(new APIResponse<>(true, "Post fetched successfully", existingPostRequestBody));
     }
 
     @PutMapping(value = "/user/{userId}/posts/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<PostResponseBody> updatePost(@PathVariable Long userId,
+    public ResponseEntity<APIResponse<Void>> updatePost(@PathVariable Long userId,
                                                        @PathVariable Long postId,
                                                        @Valid @RequestPart("post") String postRequestBody,
                                                        @RequestPart(value = "image", required = false) MultipartFile image,
@@ -107,12 +108,13 @@ public class PostController {
             String videoUrl = fileService.uploadVideo(path, video);
             postJSON.setVideoUrl(videoUrl);
         }
-        PostResponseBody updatePost = this.postService.updatePost(postJSON, postId);
-        return new ResponseEntity<>(updatePost, HttpStatus.OK);
+        PostResponseBody updatedPost = this.postService.updatePost(postJSON, postId);
+        return ResponseEntity.ok(new APIResponse<>(true, "Post updated successfully"));
     }
 
+    @PreAuthorize("hasAuthority('POST_WRITE')")
     @PatchMapping(value = "/user/{userId}/posts/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<PostResponseBody> patchPost( @PathVariable Long userId,
+    public ResponseEntity<APIResponse<Void>> patchPost( @PathVariable Long userId,
                                                        @PathVariable Long postId,
                                                        @RequestPart("post") String updatesJson,
                                                        @RequestPart(value = "image", required = false) MultipartFile image,
@@ -133,73 +135,127 @@ public class PostController {
             String videoUrl = fileService.uploadVideo(path, video);
             postJSON.setVideoUrl(videoUrl);
         }
-        PostResponseBody updatePost = this.postService.patchPost(postJSON, postId);
-        return new ResponseEntity<>(updatePost, HttpStatus.OK);
+        PostResponseBody updatedPost = this.postService.patchPost(postJSON, postId);
+        return ResponseEntity.ok(new APIResponse<>(true, "Post updated successfully"));
     }
 
+    @PreAuthorize("hasAuthority('POST_WRITE')")
     @PatchMapping("/post/{postId}/visibility")
-    public ResponseEntity<PostStatusResponse> togglePostVisibility(@PathVariable Long postId, @RequestBody Map<String, Boolean> visibility) {
+    public ResponseEntity<APIResponse<Void>> togglePostVisibility(@PathVariable Long postId, @RequestBody Map<String, Boolean> visibility) {
         boolean isLive = visibility.getOrDefault("isLive", false);
         PostResponseBody postResponseBody = this.postService.togglePostVisibility(postId, isLive);
-        APIResponse apiResponse = new APIResponse(true, "isLive updated Successfully");
-        PostStatusResponse response = new PostStatusResponse(apiResponse, postResponseBody);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(new APIResponse<>(true, "isLive updated Successfully"));
     }
 
+    @PreAuthorize("hasAuthority('SUBSCRIBER')")
+    @PatchMapping("/post/{postId}/member-post")
+    public ResponseEntity<APIResponse<PostResponseBody>> setExistingPostAsMemberPost(@PathVariable Long postId) {
+        PostResponseBody postResponseBody = postService.setAsMemberPost(postId);
+        return ResponseEntity.ok(new APIResponse<>(true, "Post marked as a member post successfully", postResponseBody));
+    }
+
+    @PreAuthorize("hasAuthority('POST_WRITE')")
+    @PatchMapping("/post/{postId}/archive")
+    public ResponseEntity<APIResponse<PostResponseBody>> archivePost(@PathVariable Long postId) {
+        PostResponseBody archivedPost = postService.archivePost(postId);
+        return ResponseEntity.ok(new APIResponse<>(true, "Post archived successfully", archivedPost));
+    }
+
+    @PreAuthorize("hasAuthority('POST_READ')")
+    @GetMapping("/archived")
+    public ResponseEntity<APIResponse<PageableResponse<PostResponseBody>>> getArchivedPosts(
+            @RequestParam(value = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(value = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(value = "sortBy", defaultValue = AppConstants.SORT_BY, required = false) String sortBy,
+            @RequestParam(value = "sortDirection", defaultValue = AppConstants.SORT_DIR, required = false) String sortDirection) {
+        PageableResponse<PostResponseBody> archivedPosts = postService.getArchivedPosts(pageNumber, pageSize, sortBy, sortDirection);
+        return ResponseEntity.ok(new APIResponse<>(true, "Archived posts fetched successfully", archivedPosts));
+    }
+
+    @PreAuthorize("hasAuthority('POST_WRITE')")
+    @PatchMapping("/post/{postId}/unarchive")
+    public ResponseEntity<APIResponse<PostResponseBody>> unarchivePost(@PathVariable Long postId) {
+        PostResponseBody unarchivedPost = postService.unarchivePost(postId);
+        return ResponseEntity.ok(new APIResponse<>(true, "Post unarchived successfully", unarchivedPost));
+    }
+
+    @PreAuthorize("hasAuthority('POST_DELETE')")
     @DeleteMapping("/user/{userId}/posts/{postId}")
-    public ResponseEntity<APIResponse> deletePost(@PathVariable Long userId, @PathVariable Long postId) {
+    public ResponseEntity<APIResponse<Void>> deletePost(@PathVariable Long userId, @PathVariable Long postId) {
         this.userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("Post", "userId", userId));
         this.postService.deletePost(postId);
-        return new ResponseEntity<>(new APIResponse(true, "Post Deleted Successfully"), HttpStatus.OK);
+        return ResponseEntity.ok(new APIResponse<>(true, "Post Deleted Successfully"));
     }
 
+    @PreAuthorize("hasAuthority('POST_WRITE')")
     @PatchMapping(value = "/post/{postId}/deactivate")
-    public ResponseEntity<PostStatusResponse> patchPostDeactivate(@PathVariable Long postId) throws IOException {
+    public ResponseEntity<APIResponse<PostResponseBody>> patchPostDeactivate(@PathVariable Long postId) throws IOException {
         PostResponseBody postResponseBody = this.postService.deactivatePost(postId);
-        APIResponse apiResponse = new APIResponse(true, "Post Deactivated Successfully");
-        PostStatusResponse response = new PostStatusResponse(apiResponse, postResponseBody);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(new APIResponse<>(true, "Post Deactivated Successfully"));
     }
 
+    @PreAuthorize("hasAuthority('POST_WRITE')")
     @PatchMapping(value = "/post/{postId}/activate")
-    public ResponseEntity<PostStatusResponse> patchPostActivate(@PathVariable Long postId) throws IOException {
+    public ResponseEntity<APIResponse<PostResponseBody>> patchPostActivate(@PathVariable Long postId) throws IOException {
         PostResponseBody postResponseBody = this.postService.activatePost(postId);
-        APIResponse apiResponse = new APIResponse(true, "Post Activated Successfully");
-        PostStatusResponse response = new PostStatusResponse(apiResponse, postResponseBody);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(new APIResponse<>(true, "Post Activated Successfully"));
     }
 
+    @PreAuthorize("hasAuthority('POST_READ')")
     @GetMapping("/user/{userId}/posts")
-    public ResponseEntity<List<PostResponseBody>> getPostsByUser(@PathVariable Long userId) {
-        List<PostResponseBody> postDTOSByUser = this.postService.getPostsByUser(userId);
-        return new ResponseEntity<>(postDTOSByUser, HttpStatus.OK);
+    public ResponseEntity<APIResponse<PageableResponse<PostResponseBody>>> getPostsByUser(
+            @PathVariable Long userId,
+            @RequestParam(value = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(value = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(value = "sortBy", defaultValue = AppConstants.SORT_BY, required = false) String sortBy,
+            @RequestParam(value = "sortDirection", defaultValue = AppConstants.SORT_DIR, required = false) String sortDirection
+    ) {
+        PageableResponse<PostResponseBody> postDTOSByUser = this.postService.getPostsByUser(userId, pageNumber, pageSize, sortBy, sortDirection);
+        return ResponseEntity.ok(new APIResponse<>(true, "User's posts fetched successfully", postDTOSByUser));
     }
 
+    @PreAuthorize("hasAuthority('POST_READ')")
     @GetMapping("/category/{categoryId}/posts")
-    public ResponseEntity<List<PostResponseBody>> getPostsByCategory(@PathVariable Long categoryId) {
-        List<PostResponseBody> postDTOSByCategory = this.postService.getPostsByCategory(categoryId);
-        return new ResponseEntity<>(postDTOSByCategory, HttpStatus.OK);
+    public ResponseEntity<APIResponse<PageableResponse<PostResponseBody>>> getPostsByCategory(
+            @PathVariable Long categoryId,
+            @RequestParam(value = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(value = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(value = "sortBy", defaultValue = AppConstants.SORT_BY, required = false) String sortBy,
+            @RequestParam(value = "sortDirection", defaultValue = AppConstants.SORT_DIR, required = false) String sortDirection
+    ) {
+        PageableResponse<PostResponseBody> postDTOSByCategory = this.postService.getPostsByCategory(categoryId, pageNumber, pageSize, sortBy, sortDirection);
+        return ResponseEntity.ok(new APIResponse<>(true, "Category posts fetched successfully", postDTOSByCategory));
     }
 
+    @PreAuthorize("hasAuthority('POST_READ')")
     @GetMapping("/search/{searchKey}")
-    public ResponseEntity<List<PostResponseBody>> getPostsByTitleSearch(@PathVariable String searchKey) {
-        List<PostResponseBody> postResponseBodyList = this.postService.searchPostsByTitle(searchKey);
-        return new ResponseEntity<>(postResponseBodyList, HttpStatus.OK);
+    public ResponseEntity<APIResponse<PageableResponse<PostResponseBody>>> getPostsByTitleSearch(
+            @PathVariable String searchKey,
+            @RequestParam(value = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(value = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(value = "sortBy", defaultValue = AppConstants.SORT_BY, required = false) String sortBy,
+            @RequestParam(value = "sortDirection", defaultValue = AppConstants.SORT_DIR, required = false) String sortDirection
+    ) {
+        PageableResponse<PostResponseBody> postResponseBodyList = this.postService.searchPostsByTitle(searchKey, pageNumber, pageSize, sortBy, sortDirection);
+        return ResponseEntity.ok(new APIResponse<>(true, "Posts fetched successfully", postResponseBodyList));
     }
 
+    @PreAuthorize("hasAuthority('POST_WRITE')")
     @PostMapping("/image/upload")
-    public ResponseEntity<String> uploadPostImage(@RequestPart("image") MultipartFile image) throws IOException {
+    public ResponseEntity<APIResponse<String>> uploadPostImage(@RequestPart("image") MultipartFile image) throws IOException {
         String imageFileName = this.fileService.uploadImage(path, image);
-        return new ResponseEntity<>(imageFileName, HttpStatus.OK); // Consider returning a full URL or a reference ID
+        return ResponseEntity.ok(new APIResponse<>(true, "Image uploaded successfully", imageFileName)); // Consider returning a full URL or a reference ID
     }
 
+    @PreAuthorize("hasAuthority('POST_WRITE')")
     @PostMapping("/video/upload")
-    public ResponseEntity<String> uploadPostVideo(@RequestPart("video") MultipartFile video) throws IOException {
+    public ResponseEntity<APIResponse<String>> uploadPostVideo(@RequestPart("video") MultipartFile video) throws IOException {
         String videoFileName = this.fileService.uploadVideo(path, video);
-        return new ResponseEntity<>(videoFileName, HttpStatus.OK); // Consider returning a full URL or a reference ID
+        return ResponseEntity.ok(new APIResponse<>(true, "Video uploaded successfully", videoFileName)); // Consider returning a full URL or a reference ID
     }
 
 
+    @PreAuthorize("hasAuthority('POST_READ')")
     @GetMapping(value = "/posts/image/{imageName}", produces = {MediaType.IMAGE_JPEG_VALUE,
                                                 MediaType.IMAGE_GIF_VALUE, MediaType.IMAGE_PNG_VALUE})
     public void downloadImage(@PathVariable String imageName, HttpServletResponse httpServletResponse) throws IOException {

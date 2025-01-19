@@ -23,6 +23,7 @@ public class PostMapper {
         post.setImageUrl(postRequestBody.getImageUrl());
         post.setVideoUrl(postRequestBody.getVideoUrl());
         post.setLive(true);
+        post.setArchived(false);
         post.setUser(user);
         post.setCategory(category);
         return post;
@@ -39,9 +40,11 @@ public class PostMapper {
         patchedPost.setPostLastUpdatedDate(DateTimeUtil.formatInstantToIsoString(updatedPost.getPostLastUpdatedDate()));
         patchedPost.setPostDeleted(updatedPost.isPostDeleted());
         patchedPost.setPostDeletionTimestamp(DateTimeUtil.formatInstantToIsoString(updatedPost.getPostDeletionTimestamp()));
+        patchedPost.setArchived(updatedPost.isArchived());
         patchedPost.setUserId(updatedPost.getUser().getUserId());
         patchedPost.setCategoryId(updatedPost.getCategory().getCategoryId());
         patchedPost.setIsLive(updatedPost.isLive());
+        patchedPost.setMemberPost(updatedPost.isMemberPost());
 
         patchedPost.setComments(new ArrayList<>());
 
