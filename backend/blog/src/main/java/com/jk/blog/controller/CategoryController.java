@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,33 +19,42 @@ public class CategoryController {
     @Autowired
     private CategoryService categoryService;
 
+    @PreAuthorize("hasAuthority('CATEGORY_MANAGE')")
     @PostMapping("/")
-    public ResponseEntity<CategoryDTO> createCategory(@Valid @RequestBody CategoryDTO categoryDTO) {
+    public ResponseEntity<APIResponse<CategoryDTO>> createCategory(@Valid @RequestBody CategoryDTO categoryDTO) {
         CategoryDTO createdCategory = this.categoryService.createCategory(categoryDTO);
-        return new ResponseEntity<>(createdCategory, HttpStatus.CREATED);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(new APIResponse<>(true, "Category created successfully", createdCategory));
     }
 
     @GetMapping("/")
-    public ResponseEntity<List<CategoryDTO>> getAllCategory() {
+    public ResponseEntity<APIResponse<List<CategoryDTO>>> getAllCategory() {
         List<CategoryDTO> categoryDTOList = this.categoryService.getAllCategories();
-        return new ResponseEntity<>(categoryDTOList, HttpStatus.OK);
+        return ResponseEntity
+                .ok(new APIResponse<>(true, "Categories fetched successfully", categoryDTOList));
     }
 
     @GetMapping("/{categoryId}")
-    public ResponseEntity<CategoryDTO> getCategory(@PathVariable Long categoryId) {
+    public ResponseEntity<APIResponse<CategoryDTO>> getCategory(@PathVariable Long categoryId) {
         CategoryDTO categoryDTO = this.categoryService.getCategoryById(categoryId);
-        return ResponseEntity.ok(categoryDTO);
+        return ResponseEntity
+                .ok(new APIResponse<>(true, "Category fetched successfully", categoryDTO));
     }
 
+    @PreAuthorize("hasAuthority('CATEGORY_MANAGE')")
     @PutMapping("/{categoryId}")
-    public ResponseEntity<CategoryDTO> updateCategory(@Valid @RequestBody CategoryDTO categoryDTO, @PathVariable Long categoryId) {
+    public ResponseEntity<APIResponse<CategoryDTO>> updateCategory(@Valid @RequestBody CategoryDTO categoryDTO, @PathVariable Long categoryId) {
         CategoryDTO updatedCategory = this.categoryService.updateCategory(categoryDTO, categoryId);
-        return new ResponseEntity<>(updatedCategory, HttpStatus.OK);
+        return ResponseEntity
+                .ok(new APIResponse<>(true, "Category updated successfully", updatedCategory));
     }
 
+    @PreAuthorize("hasAuthority('CATEGORY_MANAGE')")
     @DeleteMapping("/{categoryId}")
-    public ResponseEntity<APIResponse> deleteCategory(@PathVariable Long categoryId) {
+    public ResponseEntity<APIResponse<Void>> deleteCategory(@PathVariable Long categoryId) {
         this.categoryService.deleteCategory(categoryId);
-        return new ResponseEntity<>(new APIResponse(true, "Category Deleted Successfully"), HttpStatus.OK);
+        return ResponseEntity
+                .ok(new APIResponse<>(true, "Category deleted successfully"));
     }
 }
