@@ -1,26 +1,52 @@
 package com.jk.blog.service.impl;
 
 import com.jk.blog.dto.MailBody;
+import com.jk.blog.exception.EmailSendingException;
 import com.jk.blog.service.EmailService;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.SimpleMailMessage;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Service
 public class EmailServiceImpl implements EmailService {
 
+  private static final Logger logger = LoggerFactory.getLogger(EmailServiceImpl.class);
+
   @Autowired
   private JavaMailSender mailSender;
 
+  @Value("${spring.mail.from}")
+  private String fromEmail;
+
   @Override
   public void sendEmail(MailBody mailBody) {
-    SimpleMailMessage message = new SimpleMailMessage();
+//    SimpleMailMessage message = new SimpleMailMessage();
+//
+//    message.setTo(mailBody.getTo());
+//    message.setSubject(mailBody.getSubject());
+//    message.setText(mailBody.getText());
+//
+//    mailSender.send(message);
+    try {
+      MimeMessage message = mailSender.createMimeMessage();
+      MimeMessageHelper helper = new MimeMessageHelper(message, true);
+      helper.setFrom(fromEmail);
+      helper.setTo(mailBody.getTo());
+      helper.setSubject(mailBody.getSubject());
+      helper.setText(mailBody.getText(), true);  // HTML content
 
-    message.setTo(mailBody.getTo());
-    message.setSubject(mailBody.getSubject());
-    message.setText(mailBody.getText());
-
-    mailSender.send(message);
+      mailSender.send(message);
+      logger.info("Email sent to {}", mailBody.getTo());
+    } catch (MailException | MessagingException e) {
+      logger.error("Error sending email to {}: {}", mailBody.getTo(), e.getMessage());
+      throw new EmailSendingException("Failed to send email to ", mailBody.getTo());
+    }
   }
 }

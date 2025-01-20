@@ -7,7 +7,7 @@ import lombok.Setter;
 @Setter
 public class UnAuthorizedException extends RuntimeException {
 
-    public UnAuthorizedException(String message) {
-        super(message);
+    public UnAuthorizedException(String message, Object... args) {
+        super(String.format(message, args));
     }
 }
