@@ -11,9 +11,9 @@ import com.jk.blog.service.ProfileService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,14 +32,24 @@ public class ProfileController {
     @Value("${project.files}")
     private String path;
 
+    /**
+     * Fetch the profile of a specific user.
+     * Only accessible by the owner of the profile.
+     */
+    @PreAuthorize("authentication.principal.id == #userId")
     @GetMapping("/user/{userId}")
-    public ResponseEntity<ProfileResponseBody> getProfileByUserId(@PathVariable Long userId) {
+    public ResponseEntity<APIResponse<ProfileResponseBody>> getProfileByUserId(@PathVariable Long userId) {
         ProfileResponseBody profileResponseBody = this.profileService.getProfileByUserId(userId);
-        return ResponseEntity.ok(profileResponseBody);
+        return ResponseEntity.ok(new APIResponse<>(true, "Profile fetched successfully", profileResponseBody));
     }
 
+    /**
+     * Update the profile of a specific user.
+     * Only accessible by the owner of the profile.
+     */
+    @PreAuthorize("authentication.principal.id == #userId")
     @PutMapping(value = "/user/{userId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ProfileResponseBody> updateProfile(@PathVariable Long userId,
+    public ResponseEntity<APIResponse<ProfileResponseBody>> updateProfile(@PathVariable Long userId,
                                                              @Valid @RequestPart("profile") String profileRequestBody,
                                                              @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
 
@@ -49,11 +59,16 @@ public class ProfileController {
             profileJSON.setImageUrl(imageUrl);
         }
         ProfileResponseBody profileResponseBody = this.profileService.updateProfile(profileJSON, userId);
-        return ResponseEntity.ok(profileResponseBody);
+        return ResponseEntity.ok(new APIResponse<>(true, "Profile updated successfully", profileResponseBody));
     }
 
+    /**
+     * Patch update the profile of a specific user.
+     * Only accessible by the owner of the profile.
+     */
+    @PreAuthorize("authentication.principal.id == #userId")
     @PatchMapping(value = "/user/{userId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> patchProfile(@PathVariable Long userId,
+    public ResponseEntity<APIResponse<ProfileResponseBody>> patchProfile(@PathVariable Long userId,
                                           @RequestPart("profile") String updatesJson,
                                           @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
         Map<String, Object> updates = new ObjectMapper().readValue(updatesJson, new TypeReference<>() {});
@@ -62,12 +77,17 @@ public class ProfileController {
             updates.put("imageUrl", imageUrl);
         }
         ProfileResponseBody profileResponseBody = profileService.patchProfile(updates, userId);
-        return ResponseEntity.ok(profileResponseBody);
+        return ResponseEntity.ok(new APIResponse<>(true, "Profile patched successfully", profileResponseBody));
     }
 
+    /**
+     * Delete the profile of a specific user.
+     * Only accessible by the owner of the profile.
+     */
+    @PreAuthorize("authentication.principal.id == #userId")
     @DeleteMapping("/user/{userId}")
-    public ResponseEntity<?> deleteProfile(@PathVariable Long userId) {
+    public ResponseEntity<APIResponse<String>> deleteProfile(@PathVariable Long userId) {
         this.profileService.deleteProfile(userId);
-        return new ResponseEntity<>(new APIResponse(true, "Profile Deleted Successfully"), HttpStatus.OK);
+        return ResponseEntity.ok(new APIResponse<>(true, "Profile deleted successfully"));
     }
 }
