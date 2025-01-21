@@ -7,7 +7,6 @@ import java.util.Map;
 
 public interface ProfileService {
 
-//    ProfileResponseBody createProfile(ProfileRequestBody profileRequestBody, Long userId);
     ProfileResponseBody getProfileByUserId(Long userId);
 
     ProfileResponseBody updateProfile(ProfileRequestBody profileRequestBody, Long userId);
