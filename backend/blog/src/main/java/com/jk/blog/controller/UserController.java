@@ -95,4 +95,11 @@ public class UserController {
         userService.deactivateUserAccount(id);
         return ResponseEntity.ok(new APIResponse<>(true, "User deactivated successfully"));
     }
+
+    @PostMapping("/{email}/activate")
+    public ResponseEntity<APIResponse<Void>> activateUser(@PathVariable String email) {
+        userService.activateUserAccount(email);
+        return ResponseEntity.ok(new APIResponse<>(true, "User activated successfully"));
+    }
+
 }
