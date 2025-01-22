@@ -24,7 +24,7 @@ public interface UserService {
 
     User deactivateUserAccount(Long userId);
 
-    UserResponseBody activateUserAccount(Long userId);
+    UserResponseBody activateUserAccount(String email);
 
     boolean checkUsernameAvailability(String username);
 
