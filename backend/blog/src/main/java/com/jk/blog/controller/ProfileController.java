@@ -54,11 +54,11 @@ public class ProfileController {
                                                              @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
 
         ProfileRequestBody profileJSON = new ObjectMapper().readValue(profileRequestBody, ProfileRequestBody.class);
-        if (image != null && !image.isEmpty()) {
-            String imageUrl = fileService.uploadImage(path, image);
-            profileJSON.setImageUrl(imageUrl);
-        }
-        ProfileResponseBody profileResponseBody = this.profileService.updateProfile(profileJSON, userId);
+//        if (image != null && !image.isEmpty()) {
+//            String imageUrl = fileService.uploadImage(path, image);
+//            profileJSON.setImageUrl(imageUrl);
+//        }
+        ProfileResponseBody profileResponseBody = this.profileService.updateProfile(profileJSON, userId, image);
         return ResponseEntity.ok(new APIResponse<>(true, "Profile updated successfully", profileResponseBody));
     }
 
@@ -72,11 +72,7 @@ public class ProfileController {
                                           @RequestPart("profile") String updatesJson,
                                           @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
         Map<String, Object> updates = new ObjectMapper().readValue(updatesJson, new TypeReference<>() {});
-        if (image != null && !image.isEmpty()) {
-            String imageUrl = fileService.uploadImage(path, image);
-            updates.put("imageUrl", imageUrl);
-        }
-        ProfileResponseBody profileResponseBody = profileService.patchProfile(updates, userId);
+        ProfileResponseBody profileResponseBody = profileService.patchProfile(updates, userId, image);
         return ResponseEntity.ok(new APIResponse<>(true, "Profile patched successfully", profileResponseBody));
     }
 
