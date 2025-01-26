@@ -202,6 +202,12 @@ public class GlobalExceptionHandler {
                 .body(new APIResponse<>(false, ex.getMessage(), null));
     }
 
+    @ExceptionHandler(InvalidFormatException.class)
+    public ResponseEntity<APIResponse<String>> handleInvalidFormatException(InvalidFormatException ex) {
+        return ResponseEntity.badRequest().body(new APIResponse<>(false, ex.getMessage()));
+    }
+
+
     /**
      * Extracts user-friendly messages from DataIntegrityViolationException based on constraint violations.
      */

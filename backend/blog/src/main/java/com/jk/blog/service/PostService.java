@@ -3,8 +3,9 @@ package com.jk.blog.service;
 import com.jk.blog.dto.PageableResponse;
 import com.jk.blog.dto.post.PostRequestBody;
 import com.jk.blog.dto.post.PostResponseBody;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
+import java.io.IOException;
 
 public interface PostService {
 
@@ -16,7 +17,7 @@ public interface PostService {
      * @throws UnAuthorizedException if the user is not authenticated.
      * @throws ResourceNotFoundException if the user or category is not found.
      */
-    PostResponseBody createPost(Long userId, PostRequestBody postRequestBody);
+    PostResponseBody createPost(PostRequestBody postRequestBody, MultipartFile image, MultipartFile video) throws IOException;
 
     /**
      * Fetches all posts with optional pagination and sorting.
@@ -45,7 +46,7 @@ public interface PostService {
      * @throws ResourceNotFoundException if the post is not found.
      * @throws UnAuthorizedException if the user is not authorized to update the post.
      */
-    PostResponseBody updatePost(PostRequestBody postRequestBody, Long postId);
+    PostResponseBody updatePost(Long postId, PostRequestBody postRequestBody, MultipartFile image, MultipartFile video) throws IOException;
 
     /**
      * Partially updates an existing post by modifying only specified fields.
@@ -55,7 +56,7 @@ public interface PostService {
      * @throws ResourceNotFoundException if the post is not found.
      * @throws UnAuthorizedException if the user is not authorized to update the post.
      */
-    PostResponseBody patchPost(PostRequestBody postRequestBody, Long postId);
+    PostResponseBody patchPost(Long postId, PostRequestBody postRequestBody, MultipartFile image, MultipartFile video) throws IOException;
 
     /**
      * Archives a post by marking it as archived.

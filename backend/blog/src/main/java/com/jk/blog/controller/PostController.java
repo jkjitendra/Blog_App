@@ -7,7 +7,6 @@ import com.jk.blog.dto.APIResponse;
 import com.jk.blog.dto.PageableResponse;
 import com.jk.blog.dto.post.PostRequestBody;
 import com.jk.blog.dto.post.PostResponseBody;
-import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.repository.UserRepository;
 import com.jk.blog.service.FileService;
 import com.jk.blog.service.PostService;
@@ -35,39 +34,31 @@ public class PostController {
 
     @Autowired
     private PostService postService;
+
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ModelMapper modelMapper;
 
     @Autowired
     @Qualifier("localFileService")
 //    @Qualifier("s3FileService")
     private FileService fileService;
 
-    @Autowired
-    private ModelMapper modelMapper;
-
     @Value("${project.files}")
     private String path;
 
     @PreAuthorize("hasAuthority('POST_WRITE')")
-    @PostMapping(value = "/user/{userId}/posts", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/posts", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<APIResponse<PostResponseBody>> createPost(
-                                                       @PathVariable Long userId,
                                                        @Valid @RequestPart("post") String postRequestBody,
                                                        @RequestPart(value = "image", required = false) MultipartFile image,
                                                        @RequestPart(value = "video", required = false) MultipartFile video) throws IOException {
-        this.userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("Post", "userId", userId));
+
         PostRequestBody postJSON = new ObjectMapper().readValue(postRequestBody, PostRequestBody.class);
-        postJSON.setUserId(userId);
-        if (image != null && !image.isEmpty()) {
-            String imageUrl = fileService.uploadImage(path, image);
-            postJSON.setImageUrl(imageUrl);
-        }
-        if (video != null && !video.isEmpty()) {
-            String videoUrl = fileService.uploadVideo(path, video);
-            postJSON.setVideoUrl(videoUrl);
-        }
-        PostResponseBody createdPostResponseBody = this.postService.createPost(userId, postJSON);
+
+        PostResponseBody createdPostResponseBody = this.postService.createPost(postJSON, image, video);
         System.out.println("createdPostResponseBody " + createdPostResponseBody);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new APIResponse<>(true, "Post created successfully"));
@@ -90,52 +81,34 @@ public class PostController {
         return ResponseEntity.ok(new APIResponse<>(true, "Post fetched successfully", existingPostRequestBody));
     }
 
-    @PutMapping(value = "/user/{userId}/posts/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<APIResponse<Void>> updatePost(@PathVariable Long userId,
+    @PutMapping(value = "/posts/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<APIResponse<Void>> updatePost(
                                                        @PathVariable Long postId,
                                                        @Valid @RequestPart("post") String postRequestBody,
                                                        @RequestPart(value = "image", required = false) MultipartFile image,
                                                        @RequestPart(value = "video", required = false) MultipartFile video) throws IOException {
 
-        this.userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("Post", "userId", userId));
         PostRequestBody postJSON = new ObjectMapper().readValue(postRequestBody, PostRequestBody.class);
 
-        if (image != null && !image.isEmpty()) {
-            String imageUrl = fileService.uploadImage(path, image);
-            postJSON.setImageUrl(imageUrl);
-        }
-        if (video != null && !video.isEmpty()) {
-            String videoUrl = fileService.uploadVideo(path, video);
-            postJSON.setVideoUrl(videoUrl);
-        }
-        PostResponseBody updatedPost = this.postService.updatePost(postJSON, postId);
+        PostResponseBody updatedPost = this.postService.updatePost(postId, postJSON, image, video);
         return ResponseEntity.ok(new APIResponse<>(true, "Post updated successfully"));
     }
 
     @PreAuthorize("hasAuthority('POST_WRITE')")
-    @PatchMapping(value = "/user/{userId}/posts/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<APIResponse<Void>> patchPost( @PathVariable Long userId,
+    @PatchMapping(value = "/posts/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<APIResponse<Void>> patchPost(
                                                        @PathVariable Long postId,
                                                        @RequestPart("post") String updatesJson,
                                                        @RequestPart(value = "image", required = false) MultipartFile image,
                                                        @RequestPart(value = "video", required = false) MultipartFile video) throws IOException {
 
-        this.userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("Post", "userId", userId));
         PostRequestBody postJSON = new ObjectMapper().readValue(updatesJson, new TypeReference<>() {});
 
         // Need to check whether we are going to store all images and videos
         // or delete existing one and store the new one
         // or do something else
 
-        if (image != null && !image.isEmpty()) {
-            String imageUrl = fileService.uploadImage(path, image);
-            postJSON.setImageUrl(imageUrl);
-        }
-        if (video != null && !video.isEmpty()) {
-            String videoUrl = fileService.uploadVideo(path, video);
-            postJSON.setVideoUrl(videoUrl);
-        }
-        PostResponseBody updatedPost = this.postService.patchPost(postJSON, postId);
+        PostResponseBody updatedPost = this.postService.patchPost(postId, postJSON, image, video);
         return ResponseEntity.ok(new APIResponse<>(true, "Post updated successfully"));
     }
 
@@ -180,9 +153,9 @@ public class PostController {
     }
 
     @PreAuthorize("hasAuthority('POST_DELETE')")
-    @DeleteMapping("/user/{userId}/posts/{postId}")
-    public ResponseEntity<APIResponse<Void>> deletePost(@PathVariable Long userId, @PathVariable Long postId) {
-        this.userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("Post", "userId", userId));
+    @DeleteMapping("/posts/{postId}")
+    public ResponseEntity<APIResponse<Void>> deletePost(@PathVariable Long postId) {
+
         this.postService.deletePost(postId);
         return ResponseEntity.ok(new APIResponse<>(true, "Post Deleted Successfully"));
     }
