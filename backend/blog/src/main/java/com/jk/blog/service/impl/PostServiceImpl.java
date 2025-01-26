@@ -15,17 +15,21 @@ import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.exception.UnAuthorizedException;
 import com.jk.blog.repository.*;
 import com.jk.blog.security.AuthenticationFacade;
+import com.jk.blog.service.FileService;
 import com.jk.blog.service.PostService;
 import com.jk.blog.utils.AuthUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -49,10 +53,15 @@ public class PostServiceImpl implements PostService {
     private ModelMapper modelMapper;
     @Autowired
     private AuthenticationFacade authenticationFacade;
+    @Autowired
+    private FileService fileService;
+
+    @Value("${project.files}")
+    private String path;
 
     @Override
     @Transactional
-    public PostResponseBody createPost(Long userId, PostRequestBody postRequestBody) {
+    public PostResponseBody createPost(PostRequestBody postRequestBody, MultipartFile image, MultipartFile video) throws IOException {
         // Get the authenticated user
         User user = AuthUtil.getAuthenticatedUser();
         if (user == null) {
@@ -62,8 +71,10 @@ public class PostServiceImpl implements PostService {
 
         Post post = PostMapper.postRequestBodyToPost(postRequestBody, user, category);
 
-        post.setImageUrl(postRequestBody.getImageUrl());
-        post.setVideoUrl(postRequestBody.getVideoUrl());
+        handleMediaUpload(post, image, video);
+
+//        post.setImageUrl(postRequestBody.getImageUrl());
+//        post.setVideoUrl(postRequestBody.getVideoUrl());
         post.setMemberPost(authenticationFacade.hasAnyRole("SUBSCRIBER", "MODERATOR", "ADMIN"));
         post.setLive(true);
         post.setArchived(false);
@@ -126,7 +137,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public PostResponseBody updatePost(PostRequestBody postRequestBody, Long postId) {
+    public PostResponseBody updatePost( Long postId, PostRequestBody postRequestBody, MultipartFile image, MultipartFile video) throws IOException {
 
         Post existingPost = fetchUnArchivedAndLivePostById(postId);
 
@@ -134,6 +145,7 @@ public class PostServiceImpl implements PostService {
 
         // Update all properties
         updatePostFields(existingPost, postRequestBody);
+        handleMediaUpload(existingPost, image, video);
         existingPost.setPostLastUpdatedDate(Instant.now());
         
         Post updatedPost = this.postRepository.save(existingPost);
@@ -143,13 +155,14 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public PostResponseBody patchPost(PostRequestBody postRequestBody, Long postId) {
+    public PostResponseBody patchPost(Long postId, PostRequestBody postRequestBody, MultipartFile image, MultipartFile video) throws IOException {
 
         Post existingPost = fetchUnArchivedAndLivePostById(postId);
 
         validateModificationAuthorization(existingPost, "patch");
 
         patchPostFields(existingPost, postRequestBody);
+        handleMediaUpload(existingPost, image, video);
         existingPost.setPostLastUpdatedDate(Instant.now());
 
         Post updatedPost = this.postRepository.save(existingPost);
@@ -253,12 +266,26 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public void deletePost(Long postId) {
 
+        User authenticatedUser = AuthUtil.getAuthenticatedUser();
+
+        if (authenticatedUser == null) {
+            throw new UnAuthorizedException("You are not authorized to delete this post.");
+        }
+
         Post existingPost = fetchPostById(postId);
 
         // Allow deletion if the user owns the post OR has privileged roles
         validateModificationAuthorization(existingPost, "delete");
 
+        // Additional Check: Ensure the post is not already deleted (soft delete case)
+        if (existingPost.isPostDeleted()) {
+            throw new ResourceNotFoundException("Post", "postId", postId);
+        }
+
         this.postRepository.delete(existingPost);
+
+//        log.info("Post with ID {} deleted by user {}", postId, authenticatedUser.getUserId());
+
     }
 
     @Override
@@ -454,4 +481,16 @@ public class PostServiceImpl implements PostService {
                 page.isLast()
         );
     }
+
+    private void handleMediaUpload(Post post, MultipartFile image, MultipartFile video) throws IOException {
+        if (image != null && !image.isEmpty()) {
+            String imageUrl = this.fileService.uploadImage(path, image);
+            post.setImageUrl(imageUrl);
+        }
+        if (video != null && !video.isEmpty()) {
+            String videoUrl = this.fileService.uploadVideo(path, video);
+            post.setVideoUrl(videoUrl);
+        }
+    }
+
 }
