@@ -10,14 +10,18 @@ import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.exception.UnAuthorizedException;
 import com.jk.blog.repository.ProfileRepository;
 import com.jk.blog.repository.UserRepository;
+import com.jk.blog.service.FileService;
 import com.jk.blog.service.ProfileService;
 import com.jk.blog.utils.AuthUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Map;
 
@@ -31,6 +35,11 @@ public class ProfileServiceImpl implements ProfileService {
     private UserRepository userRepository;
     @Autowired
     private ModelMapper modelMapper;
+    @Autowired
+    private FileService fileService;
+
+    @Value("${project.files}")
+    private String path;
 
     @Override
     @Transactional(readOnly = true)
@@ -43,10 +52,15 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     @Transactional
-    public ProfileResponseBody updateProfile(ProfileRequestBody requestBody, Long userId) {
+    public ProfileResponseBody updateProfile(ProfileRequestBody requestBody, Long userId, MultipartFile image) throws IOException {
         validateProfileOwnership(userId, "update");
 
         Profile existingProfile = fetchProfileByUserId(userId);
+
+        if (image != null && !image.isEmpty()) {
+            String imageUrl = this.fileService.uploadImage(path, image);
+            existingProfile.setImageUrl(imageUrl);
+        }
 
         if (requestBody.getAddress() != null) {
             existingProfile.setAddress(requestBody.getAddress());
@@ -67,10 +81,15 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     @Transactional
-    public ProfileResponseBody patchProfile(Map<String, Object> updates, Long userId) {
+    public ProfileResponseBody patchProfile(Map<String, Object> updates, Long userId, MultipartFile image)  throws IOException {
         validateProfileOwnership(userId, "patch");
 
         Profile profile = fetchProfileByUserId(userId);
+
+        if (image != null && !image.isEmpty()) {
+            String imageUrl = this.fileService.uploadImage(path, image);
+            updates.put("imageUrl", imageUrl);
+        }
 
         updates.forEach((key, value) -> {
             if ("profileId".equals(key) || "userId".equals(key)) {
