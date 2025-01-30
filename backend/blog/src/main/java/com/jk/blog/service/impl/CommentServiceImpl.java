@@ -217,11 +217,11 @@ public class CommentServiceImpl implements CommentService {
     }
 
     private boolean isAdmin(User user) {
-        return AuthUtil.userHasRole(user, "ADMIN");
+        return AuthUtil.userHasRole(user, "ROLE_ADMIN");
     }
 
     private boolean isModerator(User user, Post post) {
-        return AuthUtil.userHasRole(user, "MODERATOR") && post.getUser().getUserId().equals(user.getUserId());
+        return AuthUtil.userHasRole(user, "ROLE_MODERATOR") && post.getUser().getUserId().equals(user.getUserId());
     }
 
     private boolean isPostOwner(User user, Post post) {
@@ -233,6 +233,6 @@ public class CommentServiceImpl implements CommentService {
     }
 
     private boolean determineMemberComment(User user) {
-        return isAdmin(user) || AuthUtil.userHasRole(user, "SUBSCRIBER") || AuthUtil.userHasRole(user, "MODERATOR");
+        return isAdmin(user) || AuthUtil.userHasRole(user, "ROLE_SUBSCRIBER") || AuthUtil.userHasRole(user, "ROLE_MODERATOR");
     }
 }
