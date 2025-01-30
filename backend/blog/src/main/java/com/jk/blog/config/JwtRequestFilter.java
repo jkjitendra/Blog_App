@@ -44,6 +44,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         final String authorizationHeader = request.getHeader("Authorization");
+        System.out.println("Authorization Header before check: " + authorizationHeader);
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
@@ -51,13 +52,19 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         final String jwtToken = authorizationHeader.substring(7);
         final String username;
+        System.out.println("Authorization Header:after check " + authorizationHeader);
+        System.out.println("JwtToken Header: " + jwtToken);
+
         try {
             username = jwtUtil.extractUsername(jwtToken);
+            System.out.println("Extracted username from token: " + username);
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                System.out.println("UserDetails loaded: " + userDetails.getUsername());
 
                 if (jwtUtil.validateToken(jwtToken, userDetails)) {
+                    System.out.println("Token is valid. Setting authentication in SecurityContextHolder.");
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
@@ -66,13 +73,21 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                    System.out.println("AuthToken set in SecurityContextHolder.");
+                    System.out.println("SecurityContextHolder Authentication: " +
+                            SecurityContextHolder.getContext().getAuthentication());
+
+                } else {
+                    System.out.println("Token validation failed.");
                 }
             }
             filterChain.doFilter(request, response);
         } catch (ExpiredJwtException ex) {
             // Handle token refresh logic
+            System.out.println("Token expired. Attempting to refresh token.");
             handleTokenRefresh(request, response, filterChain);
         } catch (Exception ex) {
+            System.out.println("Exception during token validation: " + ex.getMessage());
             handlerExceptionResolver.resolveException(request, response, null, ex);
         }
     }
@@ -93,7 +108,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         try {
             RefreshToken verifiedRefreshToken = refreshTokenService.verifyRefreshToken(refreshToken);
             User user = verifiedRefreshToken.getUser();
-            String newAccessToken = jwtUtil.generateToken(user.getUsername());
+            String newAccessToken = jwtUtil.generateToken(user.getEmail());
 
             response.setHeader("Authorization", "Bearer " + newAccessToken);
 
