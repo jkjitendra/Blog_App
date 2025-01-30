@@ -4,6 +4,7 @@ import com.jk.blog.dto.AuthDTO.AuthRequest;
 import com.jk.blog.dto.AuthDTO.AuthResponse;
 import com.jk.blog.dto.AuthDTO.RegisterRequestBody;
 import com.jk.blog.dto.user.UserResponseBody;
+import com.jk.blog.entity.Profile;
 import com.jk.blog.entity.Role;
 import com.jk.blog.entity.RoleType;
 import com.jk.blog.entity.User;
@@ -82,6 +83,12 @@ public class AuthServiceImpl implements AuthService {
                     .roles(new HashSet<>(Collections.singleton(userRole)))
                     .build();
             user.getRoles().add(userRole);
+
+            Profile profile = Profile.builder()
+                    .user(user)
+                    .build();
+
+            user.setProfile(profile);
             User savedUser = this.userRepository.save(user);
             return this.modelMapper.map(savedUser, UserResponseBody.class);
         } else {
@@ -93,7 +100,7 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse generateAccessToken(AuthRequest authRequest) {
         final User user = userRepository.findByEmail(authRequest.getLogin())
                                         .orElseThrow(() -> new ResourceNotFoundException("User", "email/username", authRequest.getLogin()));
-        final String accessToken = jwtUtil.generateToken(user.getUsername());
+        final String accessToken = jwtUtil.generateToken(user.getEmail());
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .build();
