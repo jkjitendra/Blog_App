@@ -59,7 +59,7 @@ public class CommentController {
      * Update a specific comment by its ID.
      * Only the owner of the comment can update it.
      */
-    @PreAuthorize("authentication.principal.id == @commentService.getCommentUserId(#commentId)")
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/comment/{commentId}")
     public ResponseEntity<APIResponse<CommentResponseBody>> updateComment(@Valid @RequestBody CommentRequestBody commentRequestBody,
                                                        @PathVariable Long commentId) throws IOException {
@@ -72,7 +72,7 @@ public class CommentController {
      * Delete a specific comment by its ID.
      * Applies role-based constraints for deletion.
      */
-    @PreAuthorize("@commentService.canDeleteComment(authentication.principal.id, #commentId)")
+    @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/{commentId}")
     public ResponseEntity<APIResponse<String>> deleteComment(@PathVariable Long commentId) {
         this.commentService.deleteComment(commentId);
@@ -83,7 +83,7 @@ public class CommentController {
      * Delete multiple comments from a post.
      * Only post owners or privileged users (Admin/Moderator) can perform this action.
      */
-    @PreAuthorize("@commentService.canBulkDelete(authentication.principal.id, #postId)")
+    @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/post/{postId}/bulk-delete")
     public ResponseEntity<APIResponse<String>> deleteMultipleComments(
             @PathVariable Long postId, @RequestBody List<Long> commentIds) {
@@ -95,7 +95,7 @@ public class CommentController {
      * Deactivate a specific comment by its ID.
      * Only the owner of the comment can deactivate it.
      */
-    @PreAuthorize("authentication.principal.id == @commentService.getCommentUserId(#commentId)")
+    @PreAuthorize("isAuthenticated()")
     @PatchMapping(value = "/comment/{commentId}/deactivate")
     public ResponseEntity<APIResponse<String>> patchCommentDeactivate(@PathVariable Long commentId) throws IOException {
         this.commentService.deactivateComment(commentId);
@@ -106,7 +106,7 @@ public class CommentController {
      * Activate a specific comment by its ID.
      * Only the owner of the comment can activate it.
      */
-    @PreAuthorize("authentication.principal.id == @commentService.getCommentUserId(#commentId)")
+    @PreAuthorize("isAuthenticated()")
     @PatchMapping(value = "/post/{postId}/activate")
     public ResponseEntity<APIResponse<String>> patchCommentActivate(@PathVariable Long commentId) throws IOException {
         this.commentService.activateComment(commentId);
