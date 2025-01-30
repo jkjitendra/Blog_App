@@ -1,6 +1,9 @@
 package com.jk.blog.security;
 
 import com.jk.blog.entity.User;
+import com.jk.blog.exception.ResourceNotFoundException;
+import com.jk.blog.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -14,6 +17,9 @@ import java.util.stream.Collectors;
 
 @Component
 public class AuthenticationFacadeImpl implements AuthenticationFacade {
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     public Authentication getAuthentication() {
@@ -32,8 +38,11 @@ public class AuthenticationFacadeImpl implements AuthenticationFacade {
     @Override
     public Long getAuthenticatedUserId() {
         Authentication authentication = getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof User) {
-            return ((User) authentication.getPrincipal()).getUserId(); // ✅ Use userId instead of looking up in DB
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
+            // ✅ Fetch user from the database using email/username
+            User user = userRepository.findByEmail(userDetails.getUsername())
+                    .orElseThrow(() -> new ResourceNotFoundException("User", "email", userDetails.getUsername()));
+            return user.getUserId();
         }
         throw new AccessDeniedException("User is not authenticated");
     }

@@ -5,7 +5,9 @@ import com.jk.blog.dto.AuthDTO.*;
 import com.jk.blog.dto.user.UserResponseBody;
 import com.jk.blog.entity.RefreshToken;
 import com.jk.blog.entity.User;
+import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.exception.TokenExpiredException;
+import com.jk.blog.repository.UserRepository;
 import com.jk.blog.service.AuthService;
 import com.jk.blog.service.PasswordResetService;
 import com.jk.blog.service.RefreshTokenService;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
 import java.util.Map;
 
 @RestController
@@ -43,6 +46,9 @@ public class AuthController {
 
     @Autowired
     private AuthService authService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private RefreshTokenService refreshTokenService;
@@ -75,6 +81,14 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new APIResponse<>(false, "Invalid credentials", null, e.getMessage()));
         }
+
+        User user = this.userRepository.findByEmail(authRequest.getLogin())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", authRequest.getLogin()));
+
+        // ✅ Update last login timestamp
+        user.setUserLastLoggedInDate(Instant.now());
+        userRepository.save(user);
+
         // generate accessToken
         AuthResponse authResponse = authService.generateAccessToken(authRequest);
         // generate refreshToken
@@ -144,7 +158,7 @@ public class AuthController {
         try {
             RefreshToken oldRefreshToken = refreshTokenService.verifyRefreshToken(refreshToken);
             User user = oldRefreshToken.getUser();
-            String accessToken = jwtUtil.generateToken(user.getUsername());
+            String accessToken = jwtUtil.generateToken(user.getEmail());
 
             AuthResponse authResponse = AuthResponse.builder()
                     .accessToken(accessToken)
