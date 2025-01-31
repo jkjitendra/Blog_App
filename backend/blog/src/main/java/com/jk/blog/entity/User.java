@@ -89,13 +89,27 @@ public class User implements UserDetails {
 //    public Collection<? extends GrantedAuthority> getAuthorities() {
 //        return List.of(new SimpleGrantedAuthority(getRoles().toString()));
 //    }
+
 // Fetch permissions dynamically from roles
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return roles.stream()
+        Set<GrantedAuthority> authorities = new HashSet<>();
+
+        // Add permissions as authorities
+        authorities.addAll(roles.stream()
                 .flatMap(role -> role.getPermissions().stream())
                 .map(permission -> new SimpleGrantedAuthority(permission.getName()))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toSet()));
+
+        // Add roles as authorities (Spring Security expects roles to be prefixed with "ROLE_")
+        authorities.addAll(roles.stream()
+                .map(role -> new SimpleGrantedAuthority(role.getName()))
+                .collect(Collectors.toSet()));
+
+        // Log the authorities
+        System.out.println("Granted Authorities for user " + this.getUsername() + ": " + authorities);
+
+        return authorities;
     }
 
     @Override
