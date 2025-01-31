@@ -137,7 +137,7 @@ public class UserServiceImpl implements UserService {
         this.userRepository.save(user);
 
         // Generate a new JWT token for the user
-        String newAccessToken = jwtUtil.generateToken(user.getUsername());
+        String newAccessToken = jwtUtil.generateToken(user.getEmail());
 
         return new UserResponseWithTokenDTO(UserMapper.userToUserResponseBody(user), newAccessToken);
     }

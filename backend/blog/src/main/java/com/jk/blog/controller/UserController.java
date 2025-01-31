@@ -41,8 +41,8 @@ public class UserController {
     }
 
     @PreAuthorize("hasAuthority('USER_MANAGE')")
-    @GetMapping
-    public ResponseEntity<APIResponse<UserResponseBody>> getUserByEmail(@RequestParam String email) {
+    @GetMapping("/{email}")
+    public ResponseEntity<APIResponse<UserResponseBody>> getUserByEmail(@PathVariable String email) {
         Optional<UserResponseBody> user = userService.findUserByEmail(email);
 
         return user.map(responseBody ->
@@ -66,7 +66,7 @@ public class UserController {
      * ✅ Users can update their own details.
      * ✅ Admins can update any user's details.
      */
-    @PreAuthorize("#id == authenticationFacade.getAuthenticatedUserId() or hasAuthority('USER_MANAGE')")
+    @PreAuthorize("isAuthenticated() or hasAuthority('USER_MANAGE')")
     @PutMapping("/{id}")
     public ResponseEntity<APIResponse<UserResponseBody>> updateUser(@PathVariable Long id,
                                                                     @Valid @RequestBody UserRequestBody userRequestDTO) {
@@ -74,7 +74,7 @@ public class UserController {
         return ResponseEntity.ok(new APIResponse<>(true, "User updated successfully", updatedUser));
     }
 
-    @PreAuthorize("#id == authenticationFacade.getAuthenticatedUserId()")
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/{id}/update-password")
     public ResponseEntity<APIResponse<UserResponseWithTokenDTO>> updatePassword(@PathVariable Long id,
                                                                                 @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO) {
@@ -82,14 +82,14 @@ public class UserController {
         return ResponseEntity.ok(new APIResponse<>(true, "Password updated successfully", userResponseDTO));
     }
 
-    @PreAuthorize("#id == authenticationFacade.getAuthenticatedUserId() or hasAuthority('USER_MANAGE')")
+    @PreAuthorize("isAuthenticated() or hasAuthority('USER_MANAGE')")
     @DeleteMapping("/{id}")
     public ResponseEntity<APIResponse<Void>> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.ok(new APIResponse<>(true, "User deleted successfully"));
     }
 
-    @PreAuthorize("#id == authenticationFacade.getAuthenticatedUserId() or hasAuthority('USER_MANAGE')")
+    @PreAuthorize("isAuthenticated() or hasAuthority('USER_MANAGE')")
     @PostMapping("/{id}/deactivate")
     public ResponseEntity<APIResponse<Void>> deactivateUser(@PathVariable Long id) {
         userService.deactivateUserAccount(id);
