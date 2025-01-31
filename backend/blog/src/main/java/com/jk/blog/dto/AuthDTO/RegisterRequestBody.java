@@ -34,6 +34,6 @@ public class RegisterRequestBody {
     @NotEmpty(message = "Country Name Must Not Be Empty")
     private String countryName;
 
-    @Pattern(regexp = "^(SUBSCRIBER|USUAL|ADMIN|MODERATE)$", message = "role can be either SUBSCRIBER, USUAL, ADMIN, MODERATE")
+    @Pattern(regexp = "^(ROLE_SUBSCRIBER|ROLE_USUAL|ROLE_ADMIN|ROLE_MODERATE)$", message = "role can be either ROLE_SUBSCRIBER, ROLE_USUAL, ROLE_ADMIN, ROLE_MODERATE")
     private String role;  // Role can be "SUBSCRIBER", "USUAL", "ADMIN"
 }
