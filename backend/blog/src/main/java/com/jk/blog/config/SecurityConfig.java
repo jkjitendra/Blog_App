@@ -53,9 +53,16 @@ public class SecurityConfig {
       http
   //          .cors(cors -> cors.configurationSource(corsConfigurationSource()))
               .csrf(AbstractHttpConfigurer::disable)
+              .cors(AbstractHttpConfigurer::disable)
               .authorizeHttpRequests(authorizeRequests ->
                       authorizeRequests
                               .requestMatchers("/api/v1/auth/**", "/h2-console/**").permitAll()
+//                              .requestMatchers("/api/v1/categories/**").authenticated()
+//                              .requestMatchers("/api/v1/comments/**").authenticated()
+//                              .requestMatchers("/api/v1/posts/**").authenticated()
+//                              .requestMatchers("/api/v1/profiles/user").authenticated()
+//                              .requestMatchers("/api/v1/reactions/**").authenticated()
+//                              .requestMatchers("/api/v1/users/**").authenticated()
                               .anyRequest().authenticated()
               )
               .headers(headers -> headers

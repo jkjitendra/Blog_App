@@ -1,8 +1,8 @@
 package com.jk.blog.entity;
 
 public enum RoleType {
-    SUBSCRIBER,
-    USUAL,
-    ADMIN,
-    MODERATE
+    ROLE_SUBSCRIBER,
+    ROLE_USUAL,
+    ROLE_ADMIN,
+    ROLE_MODERATE
 }
