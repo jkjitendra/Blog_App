@@ -15,6 +15,7 @@ import com.jk.blog.service.ProfileService;
 import com.jk.blog.utils.AuthUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,15 +32,19 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Autowired
     private ProfileRepository profileRepository;
+
     @Autowired
     private UserRepository userRepository;
+
     @Autowired
     private ModelMapper modelMapper;
+
     @Autowired
+    @Qualifier("s3FileService")
     private FileService fileService;
 
-    @Value("${project.files}")
-    private String path;
+    @Value("${aws.s3.bucket.profile}")
+    private String profileBucketPath;
 
     @Override
     @Transactional(readOnly = true)
@@ -58,7 +63,7 @@ public class ProfileServiceImpl implements ProfileService {
         Profile existingProfile = fetchProfileByUserId(userId);
 
         if (image != null && !image.isEmpty()) {
-            String imageUrl = this.fileService.uploadImage(path, image);
+            String imageUrl = this.fileService.uploadImage(profileBucketPath + "/images_file/", image);
             existingProfile.setImageUrl(imageUrl);
         }
 
@@ -87,7 +92,7 @@ public class ProfileServiceImpl implements ProfileService {
         Profile profile = fetchProfileByUserId(userId);
 
         if (image != null && !image.isEmpty()) {
-            String imageUrl = this.fileService.uploadImage(path, image);
+            String imageUrl = this.fileService.uploadImage(profileBucketPath + "/images_file/", image);
             updates.put("imageUrl", imageUrl);
         }
 

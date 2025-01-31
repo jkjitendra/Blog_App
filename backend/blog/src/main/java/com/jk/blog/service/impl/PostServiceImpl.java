@@ -20,6 +20,7 @@ import com.jk.blog.service.PostService;
 import com.jk.blog.utils.AuthUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -41,23 +42,31 @@ public class PostServiceImpl implements PostService {
 
     @Autowired
     private PostRepository postRepository;
+
     @Autowired
     private UserRepository userRepository;
+
     @Autowired
     private CategoryRepository categoryRepository;
+
     @Autowired
     private TagRepository tagRepository;
+
     @Autowired
     private CommentRepository commentRepository;
+
     @Autowired
     private ModelMapper modelMapper;
+
     @Autowired
     private AuthenticationFacade authenticationFacade;
+
     @Autowired
+    @Qualifier("localFileService")
     private FileService fileService;
 
-    @Value("${project.files}")
-    private String path;
+    @Value("${aws.s3.bucket.post}")
+    private String postBucketPath;
 
     @Override
     @Transactional
@@ -75,7 +84,7 @@ public class PostServiceImpl implements PostService {
 
 //        post.setImageUrl(postRequestBody.getImageUrl());
 //        post.setVideoUrl(postRequestBody.getVideoUrl());
-        post.setMemberPost(authenticationFacade.hasAnyRole("SUBSCRIBER", "MODERATOR", "ADMIN"));
+        post.setMemberPost(authenticationFacade.hasAnyRole("ROLE_SUBSCRIBER", "ROLE_MODERATOR", "ROLE_ADMIN"));
         post.setLive(true);
         post.setArchived(false);
         post.setPostCreatedDate(Instant.now());
@@ -97,7 +106,7 @@ public class PostServiceImpl implements PostService {
                                 .findByPostIdAndIsLiveTrueAndIsPostDeletedFalse(postId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Post", "postId", postId));
 
-        if (existingPost.isMemberPost() && !authenticationFacade.hasAnyRole("SUBSCRIBER", "MODERATOR", "ADMIN")) {
+        if (existingPost.isMemberPost() && !authenticationFacade.hasAnyRole("ROLE_SUBSCRIBER", "ROLE_MODERATOR", "ROLE_ADMIN")) {
             throw new UnAuthorizedException("You are not authorized to view this post.");
         }
 
@@ -213,7 +222,7 @@ public class PostServiceImpl implements PostService {
 
         User authenticatedUser = AuthUtil.getAuthenticatedUser();
 
-        boolean isAdminOrModerator = authenticationFacade.hasAnyRole("ADMIN", "MODERATOR");
+        boolean isAdminOrModerator = authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR");
 
         Pageable pageable = PageRequest.of(pageNumber, pageSize, resolveSort(sortBy, sortDirection));
 
@@ -430,7 +439,7 @@ public class PostServiceImpl implements PostService {
 
     private void validateModificationAuthorization(Post post, String action) {
         User authenticatedUser = AuthUtil.getAuthenticatedUser();
-        boolean isAdminOrModerator = authenticationFacade.hasAnyRole("ADMIN", "MODERATOR");
+        boolean isAdminOrModerator = authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR");
 
         if (authenticatedUser == null || (!post.getUser().getUserId().equals(authenticatedUser.getUserId()) && !isAdminOrModerator)) {
             throw new UnAuthorizedException("You do not have permission to %s this post.", action);
@@ -484,11 +493,11 @@ public class PostServiceImpl implements PostService {
 
     private void handleMediaUpload(Post post, MultipartFile image, MultipartFile video) throws IOException {
         if (image != null && !image.isEmpty()) {
-            String imageUrl = this.fileService.uploadImage(path, image);
+            String imageUrl = this.fileService.uploadImage(postBucketPath + "/images_file/", image);
             post.setImageUrl(imageUrl);
         }
         if (video != null && !video.isEmpty()) {
-            String videoUrl = this.fileService.uploadVideo(path, video);
+            String videoUrl = this.fileService.uploadVideo(postBucketPath + "/videos_file/", video);
             post.setVideoUrl(videoUrl);
         }
     }
