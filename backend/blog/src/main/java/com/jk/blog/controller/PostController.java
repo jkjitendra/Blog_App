@@ -46,8 +46,8 @@ public class PostController {
 //    @Qualifier("s3FileService")
     private FileService fileService;
 
-    @Value("${project.files}")
-    private String path;
+    @Value("${aws.s3.bucket.post}")
+    private String postBucketPath;
 
     @PreAuthorize("hasAuthority('POST_WRITE')")
     @PostMapping(value = "/posts", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -216,14 +216,14 @@ public class PostController {
     @PreAuthorize("hasAuthority('POST_WRITE')")
     @PostMapping("/image/upload")
     public ResponseEntity<APIResponse<String>> uploadPostImage(@RequestPart("image") MultipartFile image) throws IOException {
-        String imageFileName = this.fileService.uploadImage(path, image);
+        String imageFileName = this.fileService.uploadImage(postBucketPath + "/images_file/", image);
         return ResponseEntity.ok(new APIResponse<>(true, "Image uploaded successfully", imageFileName)); // Consider returning a full URL or a reference ID
     }
 
     @PreAuthorize("hasAuthority('POST_WRITE')")
     @PostMapping("/video/upload")
     public ResponseEntity<APIResponse<String>> uploadPostVideo(@RequestPart("video") MultipartFile video) throws IOException {
-        String videoFileName = this.fileService.uploadVideo(path, video);
+        String videoFileName = this.fileService.uploadVideo(postBucketPath + "/videos_file/", video);
         return ResponseEntity.ok(new APIResponse<>(true, "Video uploaded successfully", videoFileName)); // Consider returning a full URL or a reference ID
     }
 
@@ -232,7 +232,7 @@ public class PostController {
     @GetMapping(value = "/posts/image/{imageName}", produces = {MediaType.IMAGE_JPEG_VALUE,
                                                 MediaType.IMAGE_GIF_VALUE, MediaType.IMAGE_PNG_VALUE})
     public void downloadImage(@PathVariable String imageName, HttpServletResponse httpServletResponse) throws IOException {
-        InputStream resource = this.fileService.getResource(path, imageName);
+        InputStream resource = this.fileService.getResource(postBucketPath + "/images_file/", imageName);
         httpServletResponse.setContentType(MediaType.IMAGE_JPEG_VALUE);
         StreamUtils.copy(resource, httpServletResponse.getOutputStream());
     }
