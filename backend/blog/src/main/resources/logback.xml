@@ -1,0 +1,21 @@
+<configuration>
+    <!-- Common Console Appender -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Environment-Specific Profiles -->
+    <springProfile name="dev">
+        <include resource="logging/logback-dev.xml"/>
+    </springProfile>
+
+    <springProfile name="test">
+        <include resource="logging/logback-test.xml"/>
+    </springProfile>
+
+    <springProfile name="prod">
+        <include resource="logging/logback-prod.xml"/>
+    </springProfile>
+</configuration>
