@@ -1,5 +1,6 @@
 package com.jk.blog.service;
 
+import com.jk.blog.dto.AuthDTO.AuthRequest;
 import com.jk.blog.dto.user.*;
 import com.jk.blog.entity.User;
 
@@ -8,7 +9,7 @@ import java.util.Optional;
 
 public interface UserService {
 
-    UserResponseBody updateUser(UserRequestBody user, Long userId);
+    UserResponseBody updateUser(UserRequestBody user);
 
     Optional<UserResponseBody> findUserById(Long userId);
 
@@ -18,13 +19,13 @@ public interface UserService {
 
     List<UserResponseBody> getAllUsers();
 
-    UserResponseWithTokenDTO updatePassword(Long id, UpdatePasswordDTO updatePasswordDTO);
+    UpdatePasswordResponseBody updatePassword(UpdatePasswordRequestBody updatePasswordRequestBody);
 
-    void deleteUser(Long userId);
+    void deleteUser();
 
-    User deactivateUserAccount(Long userId);
+    User deactivateUserAccount();
 
-    UserResponseBody activateUserAccount(String email);
+    UserResponseBody activateUserAccount(AuthRequest authRequest);
 
     boolean checkUsernameAvailability(String username);
 

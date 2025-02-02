@@ -1,11 +1,10 @@
 package com.jk.blog.service.impl;
 
+import com.jk.blog.dto.AuthDTO.AuthRequest;
 import com.jk.blog.dto.MailBody;
 import com.jk.blog.dto.user.*;
 import com.jk.blog.entity.User;
-import com.jk.blog.exception.PasswordNotMatchException;
-import com.jk.blog.exception.ResourceNotFoundException;
-import com.jk.blog.exception.UnAuthorizedException;
+import com.jk.blog.exception.*;
 import com.jk.blog.repository.CommentRepository;
 import com.jk.blog.repository.PostRepository;
 import com.jk.blog.repository.UserRepository;
@@ -20,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -91,10 +91,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponseBody updateUser(UserRequestBody userRequestBody, Long userId) {
+    public UserResponseBody updateUser(UserRequestBody userRequestBody) {
+        String authenticatedUserEmail = authenticationFacade.getAuthenticatedUsername();
         User user = this.userRepository
-                        .findById(userId)
-                        .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
+                .findByEmail(authenticatedUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", authenticatedUserEmail));
+
         if(userRequestBody.getName() != null)
             user.setName(userRequestBody.getName());
         if(userRequestBody.getEmail() != null)
@@ -114,40 +116,42 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponseWithTokenDTO updatePassword(Long id, UpdatePasswordDTO updatePasswordDTO) {
-        String authenticatedUsername = authenticationFacade.getAuthenticatedUsername();
-        User user = this.userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+    public UpdatePasswordResponseBody updatePassword(UpdatePasswordRequestBody updatePasswordRequestBody) {
+        String authenticatedUserEmail = authenticationFacade.getAuthenticatedUsername();
+        User user = this.userRepository.findByEmail(authenticatedUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", authenticatedUserEmail));
 
-        if (!user.getEmail().equals(authenticatedUsername)) {
+        if (!user.getEmail().equals(authenticatedUserEmail)) {
             throw new UnAuthorizedException("You are not allowed to change another user's password.");
         }
 
         // Verify the old password
         try {
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(user.getEmail(), updatePasswordDTO.getOldPassword())
+                    new UsernamePasswordAuthenticationToken(user.getEmail(), updatePasswordRequestBody.getOldPassword())
             );
         } catch (PasswordNotMatchException e) {
             throw new PasswordNotMatchException("Incorrect old password");
         }
 
         // Encode and update the new password
-        user.setPassword(passwordEncoder.encode(updatePasswordDTO.getNewPassword()));
+        user.setPassword(passwordEncoder.encode(updatePasswordRequestBody.getNewPassword()));
         this.userRepository.save(user);
 
         // Generate a new JWT token for the user
         String newAccessToken = jwtUtil.generateToken(user.getEmail());
 
-        return new UserResponseWithTokenDTO(UserMapper.userToUserResponseBody(user), newAccessToken);
+        return new UpdatePasswordResponseBody(newAccessToken);
     }
 
     @Override
     @Transactional
-    public void deleteUser(Long userId) {
+    public void deleteUser() {
+        String authenticatedUserEmail = authenticationFacade.getAuthenticatedUsername();
         User user = this.userRepository
-                .findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
+                .findByEmail(authenticatedUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", authenticatedUserEmail));
+
         user.setUserDeleted(true);
         user.setUserDeletionTimestamp(Instant.now());
         this.userRepository.save(user);
@@ -155,10 +159,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public User deactivateUserAccount(Long userId) {
+    public User deactivateUserAccount() {
+        String authenticatedUserEmail = authenticationFacade.getAuthenticatedUsername();
         User user = this.userRepository
-                        .findById(userId)
-                        .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
+                        .findByEmail(authenticatedUserEmail)
+                        .orElseThrow(() -> new ResourceNotFoundException("User", "email", authenticatedUserEmail));
 
         user.setUserDeleted(true);
         user.setUserDeletionTimestamp(Instant.now());
@@ -169,24 +174,37 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponseBody activateUserAccount(String email) {
-        User user = this.userRepository
-                        .findByEmail(email)
-                        .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+    public UserResponseBody activateUserAccount(AuthRequest authRequest) {
+
+        User user = userRepository.findByEmail(authRequest.getLogin())
+                .or(() -> userRepository.findByUserName(authRequest.getLogin()))  // If email not found, try username
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email/username: " + authRequest.getLogin()));
+
+        // Check if the password matches
+        if (!passwordEncoder.matches(authRequest.getPassword(), user.getPassword())) {
+            throw new UnAuthorizedException("Credentials don't match. Activation failed.");
+        }
+
+        if (!user.isUserDeleted()) {
+            throw new UserAccountAlreadyActiveException("User account is already active.");
+        }
 
         Instant cutoff = Instant.now().minus(90, ChronoUnit.DAYS);
 
-        // Activate the user immediately if within the cutoff period
-        if (user.isUserDeleted() && user.getUserDeletionTimestamp().isAfter(cutoff)) {
+        // If the account was marked as deleted, reactivate it
+        if (user.getUserDeletionTimestamp() != null && user.getUserDeletionTimestamp().isAfter(cutoff)) {
             user.setUserDeleted(false);
             user.setUserDeletionTimestamp(null);
+        } else {
+            throw new AccountDeletionPeriodExceededException("Account deletion period exceeded. Activation not allowed.");
         }
 
         User activatedUser = this.userRepository.save(user);
+
         // Trigger asynchronous task to restore posts and comments
         restoreUserDataInBackground(user, cutoff);
 
-        // Send an email notification
+        // Send an email notification about account reactivation
         sendRestorationEmail(user);
 
         return UserMapper.userToUserResponseBody(activatedUser);
