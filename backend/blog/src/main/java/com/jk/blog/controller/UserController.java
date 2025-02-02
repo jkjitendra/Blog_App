@@ -1,12 +1,16 @@
 package com.jk.blog.controller;
 
+import com.jk.blog.constants.SecurityConstants;
+import com.jk.blog.controller.api.UserApi;
 import com.jk.blog.dto.APIResponse;
-import com.jk.blog.dto.user.UpdatePasswordDTO;
+import com.jk.blog.dto.user.UpdatePasswordRequestBody;
+import com.jk.blog.dto.user.UpdatePasswordResponseBody;
 import com.jk.blog.dto.user.UserRequestBody;
 import com.jk.blog.dto.user.UserResponseBody;
-import com.jk.blog.dto.user.UserResponseWithTokenDTO;
 import com.jk.blog.security.AuthenticationFacade;
 import com.jk.blog.service.UserService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,7 +23,9 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/users")
-public class UserController {
+@SecurityRequirement(name = SecurityConstants.SECURITY_SCHEME_NAME)
+@Tag(name = "User Management", description = "APIs for managing users and their details")
+public class UserController implements UserApi {
 
     @Autowired
     private UserService userService;
@@ -67,39 +73,41 @@ public class UserController {
      * ✅ Admins can update any user's details.
      */
     @PreAuthorize("isAuthenticated() or hasAuthority('USER_MANAGE')")
-    @PutMapping("/{id}")
-    public ResponseEntity<APIResponse<UserResponseBody>> updateUser(@PathVariable Long id,
-                                                                    @Valid @RequestBody UserRequestBody userRequestDTO) {
-        UserResponseBody updatedUser = userService.updateUser(userRequestDTO, id);
+    @PutMapping("/update-user")
+    public ResponseEntity<APIResponse<UserResponseBody>> updateUser(
+            @Valid @RequestBody UserRequestBody userRequestDTO
+    ) {
+        UserResponseBody updatedUser = userService.updateUser(userRequestDTO);
         return ResponseEntity.ok(new APIResponse<>(true, "User updated successfully", updatedUser));
     }
 
     @PreAuthorize("isAuthenticated()")
-    @PutMapping("/{id}/update-password")
-    public ResponseEntity<APIResponse<UserResponseWithTokenDTO>> updatePassword(@PathVariable Long id,
-                                                                                @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO) {
-        UserResponseWithTokenDTO userResponseDTO = userService.updatePassword(id, updatePasswordDTO);
+    @PutMapping("/update-password")
+    public ResponseEntity<APIResponse<UpdatePasswordResponseBody>> updatePassword(
+            @Valid @RequestBody UpdatePasswordRequestBody updatePasswordRequestBody
+    ) {
+        UpdatePasswordResponseBody userResponseDTO = userService.updatePassword(updatePasswordRequestBody);
         return ResponseEntity.ok(new APIResponse<>(true, "Password updated successfully", userResponseDTO));
     }
 
     @PreAuthorize("isAuthenticated() or hasAuthority('USER_MANAGE')")
-    @DeleteMapping("/{id}")
-    public ResponseEntity<APIResponse<Void>> deleteUser(@PathVariable Long id) {
-        userService.deleteUser(id);
+    @DeleteMapping("/")
+    public ResponseEntity<APIResponse<Void>> deleteUser() {
+        userService.deleteUser();
         return ResponseEntity.ok(new APIResponse<>(true, "User deleted successfully"));
     }
 
     @PreAuthorize("isAuthenticated() or hasAuthority('USER_MANAGE')")
-    @PostMapping("/{id}/deactivate")
-    public ResponseEntity<APIResponse<Void>> deactivateUser(@PathVariable Long id) {
-        userService.deactivateUserAccount(id);
+    @PostMapping("/deactivate")
+    public ResponseEntity<APIResponse<Void>> deactivateUser() {
+        userService.deactivateUserAccount();
         return ResponseEntity.ok(new APIResponse<>(true, "User deactivated successfully"));
     }
 
-    @PostMapping("/{email}/activate")
-    public ResponseEntity<APIResponse<Void>> activateUser(@PathVariable String email) {
-        userService.activateUserAccount(email);
-        return ResponseEntity.ok(new APIResponse<>(true, "User activated successfully"));
-    }
+//    @PostMapping("/activate")
+//    public ResponseEntity<APIResponse<Void>> activateUser(@RequestBody AuthRequest authRequest) {
+//        userService.activateUserAccount(authRequest);
+//        return ResponseEntity.ok(new APIResponse<>(true, "User activated successfully"));
+//    }
 
 }

@@ -3,11 +3,15 @@ package com.jk.blog.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jk.blog.constants.SecurityConstants;
+import com.jk.blog.controller.api.ProfileApi;
 import com.jk.blog.dto.APIResponse;
 import com.jk.blog.dto.profile.ProfileRequestBody;
 import com.jk.blog.dto.profile.ProfileResponseBody;
 import com.jk.blog.security.AuthenticationFacade;
 import com.jk.blog.service.ProfileService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -22,7 +26,9 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/profiles")
-public class ProfileController {
+@SecurityRequirement(name = SecurityConstants.SECURITY_SCHEME_NAME)
+@Tag(name = "Profile Management", description = "APIs for managing user profiles")
+public class ProfileController implements ProfileApi {
 
     @Autowired
     private ProfileService profileService;
