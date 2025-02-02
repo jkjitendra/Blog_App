@@ -39,19 +39,15 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         if (existingToken != null) {
             // Update existing refresh token
             existingToken.setRefreshToken(GeneratorUtils.generateRefreshToken());
-            System.out.println("Current Time: " + Instant.now());
             existingToken.setExpirationTime(Instant.now().plusSeconds(refreshExpirationTime/1000));
-            System.out.println(" refresh token:- " + existingToken.getRefreshToken() + " Expiration token:- " + existingToken.getExpirationTime());
             return refreshTokenRepository.save(existingToken);
         }
 
         // If no existing refresh token, Create a new one
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setRefreshToken(GeneratorUtils.generateRefreshToken());
-        System.out.println("Current Time: " + Instant.now());
         refreshToken.setExpirationTime(Instant.now().plusSeconds(refreshExpirationTime/1000));
         refreshToken.setUser(user);
-        System.out.println(" refresh token:- " + refreshToken.getRefreshToken() + " Expiration token:- " + refreshToken.getExpirationTime());
 
         refreshTokenRepository.save(refreshToken);
         return refreshToken;

@@ -1,5 +1,6 @@
 package com.jk.blog.config;
 
+import com.jk.blog.constants.SecurityConstants;
 import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,10 +37,9 @@ public class SecurityConfig {
     @Autowired
     private JwtRequestFilter jwtRequestFilter;
 
-
     @Bean
     public UserDetailsService userDetailsService() {
-        return username -> userRepository.findByEmail(username)
+        return username -> this.userRepository.findByEmail(username)
                                          .orElseThrow(() -> new ResourceNotFoundException("User", "email", username));
     }
 
@@ -56,13 +56,7 @@ public class SecurityConfig {
               .cors(AbstractHttpConfigurer::disable)
               .authorizeHttpRequests(authorizeRequests ->
                       authorizeRequests
-                              .requestMatchers("/api/v1/auth/**", "/h2-console/**").permitAll()
-//                              .requestMatchers("/api/v1/categories/**").authenticated()
-//                              .requestMatchers("/api/v1/comments/**").authenticated()
-//                              .requestMatchers("/api/v1/posts/**").authenticated()
-//                              .requestMatchers("/api/v1/profiles/user").authenticated()
-//                              .requestMatchers("/api/v1/reactions/**").authenticated()
-//                              .requestMatchers("/api/v1/users/**").authenticated()
+                              .requestMatchers(SecurityConstants.PUBLIC_ENDPOINTS).permitAll()
                               .anyRequest().authenticated()
               )
               .headers(headers -> headers
