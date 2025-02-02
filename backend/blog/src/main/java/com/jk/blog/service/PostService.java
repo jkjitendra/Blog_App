@@ -124,7 +124,7 @@ public interface PostService {
      * @return A pageable response containing the list of posts by the user.
      * @throws ResourceNotFoundException if the user is not found.
      */
-    PageableResponse<PostResponseBody> getPostsByUser(Long userId, Integer pageNumber, Integer pageSize, String sortBy, String sortDirection);
+    PageableResponse<PostResponseBody> getPostsByUser(String username, Integer pageNumber, Integer pageSize, String sortBy, String sortDirection);
 
     /**
      * Fetches all posts belonging to a specific category with optional pagination and sorting.

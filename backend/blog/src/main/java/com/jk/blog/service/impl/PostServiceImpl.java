@@ -299,10 +299,10 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageableResponse<PostResponseBody> getPostsByUser(Long userId, Integer pageNumber, Integer pageSize, String sortBy, String sortDirection) {
+    public PageableResponse<PostResponseBody> getPostsByUser(String username, Integer pageNumber, Integer pageSize, String sortBy, String sortDirection) {
         User existingUser = this.userRepository
-                                .findById(userId)
-                                .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
+                                .findByUserName(username)
+                                .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
 
         Pageable pageable = PageRequest.of(pageNumber, pageSize, resolveSort(sortBy, sortDirection));
 
