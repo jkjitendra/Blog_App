@@ -207,6 +207,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(new APIResponse<>(false, ex.getMessage()));
     }
 
+    @ExceptionHandler(UserAccountAlreadyActiveException.class)
+    public ResponseEntity<APIResponse<Void>> handleUserAccountAlreadyActiveException(UserAccountAlreadyActiveException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new APIResponse<>(false, ex.getMessage()));
+    }
+
+    @ExceptionHandler(AccountDeletionPeriodExceededException.class)
+    public ResponseEntity<APIResponse<Void>> handleAccountDeletionPeriodExceededException(AccountDeletionPeriodExceededException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new APIResponse<>(false, ex.getMessage()));
+    }
+
 
     /**
      * Extracts user-friendly messages from DataIntegrityViolationException based on constraint violations.
