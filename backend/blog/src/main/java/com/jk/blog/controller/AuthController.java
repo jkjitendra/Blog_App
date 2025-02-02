@@ -1,5 +1,6 @@
 package com.jk.blog.controller;
 
+import com.jk.blog.controller.api.AuthApi;
 import com.jk.blog.dto.APIResponse;
 import com.jk.blog.dto.AuthDTO.*;
 import com.jk.blog.dto.user.UserResponseBody;
@@ -11,7 +12,10 @@ import com.jk.blog.repository.UserRepository;
 import com.jk.blog.service.AuthService;
 import com.jk.blog.service.PasswordResetService;
 import com.jk.blog.service.RefreshTokenService;
+import com.jk.blog.service.UserService;
 import com.jk.blog.utils.JwtUtil;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,7 +41,9 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/auth")
-public class AuthController {
+@Tag(name = "Authentication", description = "APIs for user authentication and authorization")
+@SecurityRequirements()
+public class AuthController implements AuthApi {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
@@ -46,6 +52,9 @@ public class AuthController {
 
     @Autowired
     private AuthService authService;
+
+    @Autowired
+    private UserService userService;
 
     @Autowired
     private UserRepository userRepository;
@@ -87,12 +96,12 @@ public class AuthController {
 
         // ✅ Update last login timestamp
         user.setUserLastLoggedInDate(Instant.now());
-        userRepository.save(user);
+        this.userRepository.save(user);
 
         // generate accessToken
-        AuthResponse authResponse = authService.generateAccessToken(authRequest);
+        AuthResponse authResponse = this.authService.generateAccessToken(authRequest);
         // generate refreshToken
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(authRequest.getLogin());
+        RefreshToken refreshToken = this.refreshTokenService.createRefreshToken(authRequest.getLogin());
 
         // Set the refresh token as an HTTP-only cookie
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", refreshToken.getRefreshToken())
@@ -123,7 +132,7 @@ public class AuthController {
         }
 
         if (refreshToken != null) {
-            refreshTokenService.deleteRefreshToken(refreshToken);
+            this.refreshTokenService.deleteRefreshToken(refreshToken);
         }
 
         // Remove refreshToken from client-side cookies
@@ -140,7 +149,6 @@ public class AuthController {
                 .body(new APIResponse<>(true, "Logged out successfully"));
     }
 
-    //    @PreAuthorize("isAuthenticated()")
     @PostMapping("/refresh")
     public ResponseEntity<APIResponse<AuthResponse>> createAccessToken(HttpServletRequest request) {
         String refreshToken = null;
@@ -156,7 +164,7 @@ public class AuthController {
         }
 
         try {
-            RefreshToken oldRefreshToken = refreshTokenService.verifyRefreshToken(refreshToken);
+            RefreshToken oldRefreshToken = this.refreshTokenService.verifyRefreshToken(refreshToken);
             User user = oldRefreshToken.getUser();
             String accessToken = jwtUtil.generateToken(user.getEmail());
 
@@ -168,7 +176,7 @@ public class AuthController {
                     .body(new APIResponse<>(true, "Token refreshed successfully", authResponse));
 
         } catch (TokenExpiredException ex) {
-            refreshTokenService.deleteRefreshToken(refreshToken);
+            this.refreshTokenService.deleteRefreshToken(refreshToken);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new APIResponse<>(false, "Refresh token expired", null));
         } catch (Exception ex) {
@@ -181,19 +189,25 @@ public class AuthController {
     public ResponseEntity<APIResponse<String>> forgotPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
         logger.debug("Received forgot password request for email: {}", email);
-        passwordResetService.generateOtp(email);
+        this.passwordResetService.generateOtp(email);
         return ResponseEntity.ok(new APIResponse<>(true, "Password reset instructions have been sent to your email."));
     }
 
     @PostMapping("/verify-otp")
     public ResponseEntity<APIResponse<String>> verifyOtp(@RequestBody VerifyOtpDTO verifyOtpDTO) {
-        passwordResetService.verifyOtp(verifyOtpDTO);
+        this.passwordResetService.verifyOtp(verifyOtpDTO);
         return ResponseEntity.ok(new APIResponse<>(true, "OTP verified."));
     }
 
     @PostMapping("/reset-password")
     public ResponseEntity<APIResponse<String>> resetPassword(@RequestBody ResetPasswordDTO resetPasswordDTO) {
-        passwordResetService.resetPassword(resetPasswordDTO);
+        this.passwordResetService.resetPassword(resetPasswordDTO);
         return ResponseEntity.ok(new APIResponse<>(true, "Password reset successful."));
+    }
+
+    @PostMapping("/activate")
+    public ResponseEntity<APIResponse<Void>> activateUser(@RequestBody AuthRequest authRequest) {
+        this.userService.activateUserAccount(authRequest);
+        return ResponseEntity.ok(new APIResponse<>(true, "User activated successfully"));
     }
 }

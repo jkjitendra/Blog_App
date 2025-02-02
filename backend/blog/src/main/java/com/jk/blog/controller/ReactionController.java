@@ -1,9 +1,13 @@
 package com.jk.blog.controller;
 
+import com.jk.blog.constants.SecurityConstants;
+import com.jk.blog.controller.api.ReactionApi;
 import com.jk.blog.dto.APIResponse;
 import com.jk.blog.dto.reaction.ReactionSummaryResponse;
 import com.jk.blog.dto.reaction.ReactionRequest;
 import com.jk.blog.service.ReactionService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -11,7 +15,9 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/reactions")
-public class ReactionController {
+@SecurityRequirement(name = SecurityConstants.SECURITY_SCHEME_NAME)
+@Tag(name = "Reaction Management", description = "APIs for managing reactions to posts and comments")
+public class ReactionController implements ReactionApi {
 
     @Autowired
     private ReactionService reactionService;

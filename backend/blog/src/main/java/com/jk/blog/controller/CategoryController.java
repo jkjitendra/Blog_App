@@ -1,8 +1,12 @@
 package com.jk.blog.controller;
 
+import com.jk.blog.constants.SecurityConstants;
+import com.jk.blog.controller.api.CategoryApi;
 import com.jk.blog.dto.APIResponse;
 import com.jk.blog.dto.CategoryDTO;
 import com.jk.blog.service.CategoryService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,7 +18,9 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/categories")
-public class CategoryController {
+@SecurityRequirement(name = SecurityConstants.SECURITY_SCHEME_NAME)
+@Tag(name = "Category Management", description = "APIs for managing blog categories")
+public class CategoryController implements CategoryApi {
 
     @Autowired
     private CategoryService categoryService;

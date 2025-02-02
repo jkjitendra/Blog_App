@@ -1,9 +1,13 @@
 package com.jk.blog.controller;
 
+import com.jk.blog.constants.SecurityConstants;
+import com.jk.blog.controller.api.CommentApi;
 import com.jk.blog.dto.*;
 import com.jk.blog.dto.comment.CommentRequestBody;
 import com.jk.blog.dto.comment.CommentResponseBody;
 import com.jk.blog.service.CommentService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,7 +20,9 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/comments")
-public class CommentController {
+@SecurityRequirement(name = SecurityConstants.SECURITY_SCHEME_NAME)
+@Tag(name = "Comment Management", description = "APIs for managing comments on blog posts")
+public class CommentController implements CommentApi {
 
     @Autowired
     private CommentService commentService;

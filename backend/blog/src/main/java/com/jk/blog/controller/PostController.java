@@ -3,6 +3,8 @@ package com.jk.blog.controller;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jk.blog.constants.AppConstants;
+import com.jk.blog.constants.SecurityConstants;
+import com.jk.blog.controller.api.PostApi;
 import com.jk.blog.dto.APIResponse;
 import com.jk.blog.dto.PageableResponse;
 import com.jk.blog.dto.post.PostRequestBody;
@@ -10,6 +12,8 @@ import com.jk.blog.dto.post.PostResponseBody;
 import com.jk.blog.repository.UserRepository;
 import com.jk.blog.service.FileService;
 import com.jk.blog.service.PostService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.modelmapper.ModelMapper;
@@ -30,7 +34,9 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/posts")
-public class PostController {
+@SecurityRequirement(name = SecurityConstants.SECURITY_SCHEME_NAME)
+@Tag(name = "Post Management", description = "APIs for managing blog posts")
+public class PostController implements PostApi {
 
     @Autowired
     private PostService postService;
@@ -59,7 +65,6 @@ public class PostController {
         PostRequestBody postJSON = new ObjectMapper().readValue(postRequestBody, PostRequestBody.class);
 
         PostResponseBody createdPostResponseBody = this.postService.createPost(postJSON, image, video);
-        System.out.println("createdPostResponseBody " + createdPostResponseBody);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new APIResponse<>(true, "Post created successfully"));
     }
@@ -175,15 +180,15 @@ public class PostController {
     }
 
     @PreAuthorize("hasAuthority('POST_READ')")
-    @GetMapping("/user/{userId}/posts")
+    @GetMapping("/user/{username}/posts")
     public ResponseEntity<APIResponse<PageableResponse<PostResponseBody>>> getPostsByUser(
-            @PathVariable Long userId,
+            @PathVariable String username,
             @RequestParam(value = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
             @RequestParam(value = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
             @RequestParam(value = "sortBy", defaultValue = AppConstants.SORT_BY, required = false) String sortBy,
             @RequestParam(value = "sortDirection", defaultValue = AppConstants.SORT_DIR, required = false) String sortDirection
     ) {
-        PageableResponse<PostResponseBody> postDTOSByUser = this.postService.getPostsByUser(userId, pageNumber, pageSize, sortBy, sortDirection);
+        PageableResponse<PostResponseBody> postDTOSByUser = this.postService.getPostsByUser(username, pageNumber, pageSize, sortBy, sortDirection);
         return ResponseEntity.ok(new APIResponse<>(true, "User's posts fetched successfully", postDTOSByUser));
     }
 
