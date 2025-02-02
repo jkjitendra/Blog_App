@@ -106,9 +106,6 @@ public class User implements UserDetails {
                 .map(role -> new SimpleGrantedAuthority(role.getName()))
                 .collect(Collectors.toSet()));
 
-        // Log the authorities
-        System.out.println("Granted Authorities for user " + this.getUsername() + ": " + authorities);
-
         return authorities;
     }
 
