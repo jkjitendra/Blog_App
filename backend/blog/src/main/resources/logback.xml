@@ -11,10 +11,6 @@
         <include resource="logging/logback-dev.xml"/>
     </springProfile>
 
-    <springProfile name="test">
-        <include resource="logging/logback-test.xml"/>
-    </springProfile>
-
     <springProfile name="prod">
         <include resource="logging/logback-prod.xml"/>
     </springProfile>

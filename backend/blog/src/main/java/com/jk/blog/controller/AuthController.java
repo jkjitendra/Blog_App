@@ -71,7 +71,7 @@ public class AuthController implements AuthApi {
     @Value("${app.cookie.secure}")
     private boolean isCookieSecure;
 
-    @Value("${secret.jwt.refresh-expiration-time}")
+    @Value("${jwt.refresh-expiration-time}")
     private long refreshExpirationTime;
 
     @PostMapping("/register")
