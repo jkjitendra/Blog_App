@@ -19,7 +19,7 @@ import java.time.Instant;
 @Service
 public class RefreshTokenServiceImpl implements RefreshTokenService {
 
-    @Value("${secret.jwt.refresh-expiration-time}")
+    @Value("${jwt.refresh-expiration-time}")
     private long refreshExpirationTime;
 
     @Autowired
