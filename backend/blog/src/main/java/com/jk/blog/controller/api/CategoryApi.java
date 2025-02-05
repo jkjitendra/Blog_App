@@ -25,6 +25,8 @@ public interface CategoryApi {
     @Operation(summary = "Get all categories", description = "Fetches all categories.")
     @ApiResponse(responseCode = "200", description = "Categories fetched successfully",
             content = @Content(schema = @Schema(implementation = APIResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Categories Not Found",
+            content = @Content(schema = @Schema(implementation = APIResponse.class)))
     @ApiResponse(responseCode = "500", description = "Internal server error")
     ResponseEntity<APIResponse<List<CategoryDTO>>> getAllCategory();
 
@@ -32,7 +34,14 @@ public interface CategoryApi {
     @ApiResponse(responseCode = "200", description = "Category fetched successfully",
             content = @Content(schema = @Schema(implementation = APIResponse.class)))
     @ApiResponse(responseCode = "404", description = "Category not found")
-    ResponseEntity<APIResponse<CategoryDTO>> getCategory(@PathVariable Long categoryId);
+    ResponseEntity<APIResponse<CategoryDTO>> getCategoryById(@PathVariable Long categoryId);
+
+    @Operation(summary = "Get category by Title", description = "Fetches a category by its Title.")
+    @ApiResponse(responseCode = "200", description = "Category fetched successfully",
+            content = @Content(schema = @Schema(implementation = APIResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Category not found")
+    ResponseEntity<APIResponse<CategoryDTO>> getCategoryByTitle(@PathVariable String categoryTitle);
+
 
     @Operation(summary = "Update a category", description = "Allows admins to update a category by its ID.")
     @ApiResponse(responseCode = "200", description = "Category updated successfully",
