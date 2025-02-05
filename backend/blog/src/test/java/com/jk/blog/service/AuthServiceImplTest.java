@@ -126,6 +126,7 @@ class AuthServiceImplTest {
      */
     @Test
     void test_registerUser_ShouldThrowInvalidRoleException_WhenRoleIsInvalid() {
+  
         registerRequest.setRole("INVALID_ROLE");
 
         assertThrows(InvalidRoleException.class, () -> authService.registerUser(registerRequest));
@@ -137,6 +138,7 @@ class AuthServiceImplTest {
      */
     @Test
     void test_registerUser_ShouldThrowResourceNotFoundException_WhenRoleNotFound() {
+      
         when(userRepository.findByEmail(registerRequest.getEmail())).thenReturn(Optional.empty());
         when(roleRepository.findByName(RoleType.ROLE_USUAL.name())).thenReturn(Optional.empty());
 
@@ -148,6 +150,7 @@ class AuthServiceImplTest {
      */
     @Test
     void test_generateAccessToken_ShouldReturnAuthResponse() {
+
         when(userRepository.findByEmail(authRequest.getLogin())).thenReturn(Optional.of(user));
         when(jwtUtil.generateToken(user.getEmail())).thenReturn("jwtToken");
 
@@ -162,6 +165,7 @@ class AuthServiceImplTest {
      */
     @Test
     void test_generateAccessToken_ShouldThrowResourceNotFoundException_WhenUserNotFound() {
+
         when(userRepository.findByEmail(authRequest.getLogin())).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> authService.generateAccessToken(authRequest));
