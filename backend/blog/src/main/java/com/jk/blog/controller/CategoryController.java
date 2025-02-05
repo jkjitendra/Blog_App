@@ -34,18 +34,26 @@ public class CategoryController implements CategoryApi {
                 .body(new APIResponse<>(true, "Category created successfully", createdCategory));
     }
 
-    @GetMapping("/")
-    public ResponseEntity<APIResponse<List<CategoryDTO>>> getAllCategory() {
-        List<CategoryDTO> categoryDTOList = this.categoryService.getAllCategories();
-        return ResponseEntity
-                .ok(new APIResponse<>(true, "Categories fetched successfully", categoryDTOList));
-    }
-
     @GetMapping("/{categoryId}")
-    public ResponseEntity<APIResponse<CategoryDTO>> getCategory(@PathVariable Long categoryId) {
+    public ResponseEntity<APIResponse<CategoryDTO>> getCategoryById(@PathVariable Long categoryId) {
         CategoryDTO categoryDTO = this.categoryService.getCategoryById(categoryId);
         return ResponseEntity
                 .ok(new APIResponse<>(true, "Category fetched successfully", categoryDTO));
+    }
+
+    @GetMapping("/{categoryTitle}")
+    public ResponseEntity<APIResponse<CategoryDTO>> getCategoryByTitle(@PathVariable String categoryTitle) {
+        CategoryDTO categoryDTO = this.categoryService.getCategoryByTitle(categoryTitle);
+        return ResponseEntity
+                .ok(new APIResponse<>(true, "Category fetched successfully", categoryDTO));
+    }
+
+    @GetMapping("/")
+    public ResponseEntity<APIResponse<List<CategoryDTO>>> getAllCategory() {
+        List<CategoryDTO> categoryDTOList = this.categoryService.getAllCategories();
+
+        return ResponseEntity
+                .ok(new APIResponse<>(true, "Categories fetched successfully", categoryDTOList));
     }
 
     @PreAuthorize("hasAuthority('CATEGORY_MANAGE')")
