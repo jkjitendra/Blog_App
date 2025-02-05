@@ -9,7 +9,7 @@ import com.jk.blog.entity.RoleType;
 import com.jk.blog.entity.User;
 import com.jk.blog.exception.InvalidRoleException;
 import com.jk.blog.exception.ResourceNotFoundException;
-import com.jk.blog.exception.UserAlreadyExistingException;
+import com.jk.blog.exception.ResourceAlreadyExistsException;
 import com.jk.blog.repository.RoleRepository;
 import com.jk.blog.repository.UserRepository;
 import com.jk.blog.service.impl.AuthServiceImpl;
@@ -92,7 +92,7 @@ class AuthServiceImplTest {
      * Test case: User registration with valid input
      */
     @Test
-    void test_registerUser_ShouldRegisterSuccessfully() {
+    void test_registerUser_ShouldRegisterSuccessfully_WhenValidInput() {
         when(userRepository.findByEmail(registerRequest.getEmail())).thenReturn(Optional.empty());
         when(roleRepository.findByName(RoleType.ROLE_USUAL.name())).thenReturn(Optional.of(role));
         when(passwordEncoder.encode(registerRequest.getPassword())).thenReturn("encodedPassword");
@@ -109,7 +109,7 @@ class AuthServiceImplTest {
      * Test case: Registration with an existing email should throw UserAlreadyExistingException
      */
     @Test
-    void test_registerUser_ShouldThrowUserAlreadyExistingException_WhenUserAlreadyExists() {
+    void test_registerUser_ShouldThrowResourceAlreadyExistingException_WhenUserAlreadyExists() {
 
         Role role1 = new Role();
         role1.setId(1L);
@@ -117,7 +117,7 @@ class AuthServiceImplTest {
         when(roleRepository.findByName(registerRequest.getRole())).thenReturn(Optional.of(role1));
         when(userRepository.findByEmail(registerRequest.getEmail())).thenReturn(Optional.of(user));
 
-        assertThrows(UserAlreadyExistingException.class, () -> authService.registerUser(registerRequest));
+        assertThrows(ResourceAlreadyExistsException.class, () -> authService.registerUser(registerRequest));
         verify(userRepository, never()).save(any(User.class));
     }
 

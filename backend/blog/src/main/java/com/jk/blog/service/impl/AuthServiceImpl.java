@@ -10,7 +10,7 @@ import com.jk.blog.entity.RoleType;
 import com.jk.blog.entity.User;
 import com.jk.blog.exception.InvalidRoleException;
 import com.jk.blog.exception.ResourceNotFoundException;
-import com.jk.blog.exception.UserAlreadyExistingException;
+import com.jk.blog.exception.ResourceAlreadyExistsException;
 import com.jk.blog.repository.PasswordResetTokenRepository;
 import com.jk.blog.repository.RoleRepository;
 import com.jk.blog.repository.UserRepository;
@@ -92,7 +92,7 @@ public class AuthServiceImpl implements AuthService {
             User savedUser = this.userRepository.save(user);
             return this.modelMapper.map(savedUser, UserResponseBody.class);
         } else {
-            throw new UserAlreadyExistingException("User", "email", registerRequestBody.getEmail());
+            throw new ResourceAlreadyExistsException("User", "email", registerRequestBody.getEmail());
         }
     }
 

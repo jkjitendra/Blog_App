@@ -108,8 +108,8 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(apiResponse, HttpStatus.UNAUTHORIZED);
     }
 
-    @ExceptionHandler(UserAlreadyExistingException.class)
-    public ResponseEntity<APIResponse<String>> handleUserAlreadyExistingException(UserAlreadyExistingException ex) {
+    @ExceptionHandler(ResourceAlreadyExistsException.class)
+    public ResponseEntity<APIResponse<String>> handleUserAlreadyExistingException(ResourceAlreadyExistsException ex) {
         APIResponse<String> apiResponse = new APIResponse<>(false, ex.getMessage());
         return new ResponseEntity<>(apiResponse, HttpStatus.CONFLICT);
     }
