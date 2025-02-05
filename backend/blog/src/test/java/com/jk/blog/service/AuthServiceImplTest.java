@@ -92,7 +92,7 @@ class AuthServiceImplTest {
      * Test case: User registration with valid input
      */
     @Test
-    void registerUser_ShouldRegisterSuccessfully() {
+    void test_registerUser_ShouldRegisterSuccessfully() {
         when(userRepository.findByEmail(registerRequest.getEmail())).thenReturn(Optional.empty());
         when(roleRepository.findByName(RoleType.ROLE_USUAL.name())).thenReturn(Optional.of(role));
         when(passwordEncoder.encode(registerRequest.getPassword())).thenReturn("encodedPassword");
@@ -109,7 +109,7 @@ class AuthServiceImplTest {
      * Test case: Registration with an existing email should throw UserAlreadyExistingException
      */
     @Test
-    void registerUser_ShouldThrowException_WhenUserAlreadyExists() {
+    void test_registerUser_ShouldThrowUserAlreadyExistingException_WhenUserAlreadyExists() {
 
         Role role1 = new Role();
         role1.setId(1L);
@@ -125,7 +125,7 @@ class AuthServiceImplTest {
      * Test case: Registration with an invalid role should throw InvalidRoleException
      */
     @Test
-    void registerUser_ShouldThrowException_WhenRoleIsInvalid() {
+    void test_registerUser_ShouldThrowInvalidRoleException_WhenRoleIsInvalid() {
         registerRequest.setRole("INVALID_ROLE");
 
         assertThrows(InvalidRoleException.class, () -> authService.registerUser(registerRequest));
@@ -136,7 +136,7 @@ class AuthServiceImplTest {
      * Test case: Registration should throw ResourceNotFoundException when role is not found
      */
     @Test
-    void registerUser_ShouldThrowException_WhenRoleNotFound() {
+    void test_registerUser_ShouldThrowResourceNotFoundException_WhenRoleNotFound() {
         when(userRepository.findByEmail(registerRequest.getEmail())).thenReturn(Optional.empty());
         when(roleRepository.findByName(RoleType.ROLE_USUAL.name())).thenReturn(Optional.empty());
 
@@ -147,7 +147,7 @@ class AuthServiceImplTest {
      * Test case: Generate access token successfully
      */
     @Test
-    void generateAccessToken_ShouldReturnAuthResponse() {
+    void test_generateAccessToken_ShouldReturnAuthResponse() {
         when(userRepository.findByEmail(authRequest.getLogin())).thenReturn(Optional.of(user));
         when(jwtUtil.generateToken(user.getEmail())).thenReturn("jwtToken");
 
@@ -161,7 +161,7 @@ class AuthServiceImplTest {
      * Test case: Generate access token should throw exception when user not found
      */
     @Test
-    void generateAccessToken_ShouldThrowException_WhenUserNotFound() {
+    void test_generateAccessToken_ShouldThrowResourceNotFoundException_WhenUserNotFound() {
         when(userRepository.findByEmail(authRequest.getLogin())).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> authService.generateAccessToken(authRequest));
