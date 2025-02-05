@@ -93,6 +93,7 @@ class AuthServiceImplTest {
      */
     @Test
     void test_registerUser_ShouldRegisterSuccessfully_WhenValidInput() {
+
         when(userRepository.findByEmail(registerRequest.getEmail())).thenReturn(Optional.empty());
         when(roleRepository.findByName(RoleType.ROLE_USUAL.name())).thenReturn(Optional.of(role));
         when(passwordEncoder.encode(registerRequest.getPassword())).thenReturn("encodedPassword");
