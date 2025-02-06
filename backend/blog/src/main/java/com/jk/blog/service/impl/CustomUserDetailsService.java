@@ -2,6 +2,7 @@ package com.jk.blog.service.impl;
 
 
 import com.jk.blog.entity.User;
+import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,7 +22,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         // Fetch user by email OR username (both are unique)
         User user = userRepository.findByEmail(login)
                 .or(() -> userRepository.findByUserName(login))  // If email not found, try username
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email/username: " + login));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email/username: ", login));
 
         // Convert User entity to Spring Security UserDetails
         return org.springframework.security.core.userdetails.User.builder()
