@@ -141,7 +141,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         try {
             emailService.sendEmail(mailBody);
         } catch (MailException e) {
-            throw new EmailSendingException(email, "Failed to send OTP email", e);
+            throw new EmailSendingException(email, e.getMessage());
         }
     }
 }

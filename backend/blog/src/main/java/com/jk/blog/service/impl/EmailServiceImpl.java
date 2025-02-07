@@ -28,18 +28,20 @@ public class EmailServiceImpl implements EmailService {
   @Override
   public void sendEmail(MailBody mailBody) {
     try {
+
       MimeMessage message = mailSender.createMimeMessage();
       MimeMessageHelper helper = new MimeMessageHelper(message, true);
       helper.setFrom(fromEmail);
       helper.setTo(mailBody.getTo());
       helper.setSubject(mailBody.getSubject());
-      helper.setText(mailBody.getText(), true);  // HTML content
+      helper.setText(mailBody.getText(), true);
 
       mailSender.send(message);
       logger.info("Email sent to {}", mailBody.getTo());
+
     } catch (MailException | MessagingException e) {
       logger.error("Error sending email to {}: {}", mailBody.getTo(), e.getMessage());
-      throw new EmailSendingException("Failed to send email to ", mailBody.getTo());
+      throw new EmailSendingException(mailBody.getTo(), e.getMessage());
     }
   }
 }
