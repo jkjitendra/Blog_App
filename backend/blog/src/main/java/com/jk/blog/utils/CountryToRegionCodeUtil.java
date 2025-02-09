@@ -22,6 +22,9 @@ public class CountryToRegionCodeUtil {
     }
 
     public static boolean isValidCountryName(String countryName) {
+        if (countryName == null || countryName.trim().isEmpty()) {
+            return false;
+        }
         return Arrays.stream(Locale.getAvailableLocales())
                 .map(locale -> locale.getDisplayCountry(Locale.ENGLISH))
                 .anyMatch(displayCountry -> displayCountry.equalsIgnoreCase(countryName));
