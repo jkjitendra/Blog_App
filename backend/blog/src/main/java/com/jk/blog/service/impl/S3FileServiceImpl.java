@@ -29,12 +29,14 @@ public class S3FileServiceImpl implements FileService {
     private String region;
 
     public String uploadImage(String path, MultipartFile file) throws IOException {
-        String key = path + file.getOriginalFilename();
+        String fileName = generateFileName(file); // Transform the filename first
+        String key = path + fileName;
         return uploadFile(key, file);
     }
 
     public String uploadVideo(String path, MultipartFile file) throws IOException {
-        String key = path + file.getOriginalFilename();
+        String fileName = generateFileName(file);
+        String key = path + fileName;
         return uploadFile(key, file);
     }
 
@@ -42,18 +44,20 @@ public class S3FileServiceImpl implements FileService {
         String fileName = generateFileName(file);
         String key = keyPrefix + fileName;
 
-        try {
+        try (InputStream inputStream = file.getInputStream()) {
+
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(key)
                     .contentType(file.getContentType())
                     .build();
 
-            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(inputStream, file.getSize()));
 
             return "https://" + bucketName + ".s3." + region + ".amazonaws.com/" + key;
         } catch (S3Exception e) {
-            throw new IOException("Error uploading file to S3: " + e.awsErrorDetails().errorMessage(), e);
+            String errorMessage = e.awsErrorDetails() != null ? e.awsErrorDetails().errorMessage() : e.getMessage();
+            throw new IOException("Error uploading file to S3: " + errorMessage, e);
         }
     }
 
@@ -77,11 +81,11 @@ public class S3FileServiceImpl implements FileService {
         return UUID.randomUUID().toString() + "-" + safeFilename + extension;
     }
 
-
     @Override
     public InputStream getResource(String path, String fileName) throws IOException {
         try {
-            return new URL("https://" + bucketName + ".s3." + region + ".amazonaws.com/" + path + "/" + fileName).openStream();
+            String s3Url = "https://" + bucketName + ".s3." + region + ".amazonaws.com/" + path + "/" + fileName;
+            return new URL(s3Url).openStream();
         } catch (Exception e) {
             throw new IOException("Error fetching file from S3: " + e.getMessage(), e);
         }
