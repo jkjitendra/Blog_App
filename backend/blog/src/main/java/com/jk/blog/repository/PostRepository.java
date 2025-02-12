@@ -6,16 +6,21 @@ import com.jk.blog.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
 
     List<Post> findByUser(User user);
+
+    @Query("SELECT p FROM Post p WHERE p.user.userId IN :userIds")
+    List<Post> findByUserIds(@Param("userIds") Set<Long> userIds);
 
     Page<Post> findByUser(User user, Pageable pageable);
 
@@ -31,8 +36,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT p FROM Post p WHERE p.isPostDeleted = false OR (p.isPostDeleted = true AND p.postDeletionTimestamp > :cutoff)")
     List<Post> findActiveOrRecoverablePosts(Instant cutoff);
 
-    @Query("SELECT p FROM Post p WHERE p.isPostDeleted = true AND p.postDeletionTimestamp <= :cutoff")
-    List<Post> findPostsEligibleForPermanentDeletion(Instant cutoff);
+    @Modifying
+    @Query("DELETE FROM Post p WHERE p.isPostDeleted = true AND p.postDeletionTimestamp <= :cutoff")
+    void deletePostsEligibleForPermanentDeletion(@Param("cutoff") Instant cutoff);
 
     // Fetch post by ID ensuring only live, non-deleted posts
     @Query("SELECT p FROM Post p WHERE p.postId = :postId AND p.isLive = true AND p.isPostDeleted = false")
