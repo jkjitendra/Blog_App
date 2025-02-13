@@ -101,13 +101,13 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         User user = userRepository.findByEmail(resetPasswordDTO.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", resetPasswordDTO.getEmail()));
 
-        PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByUserAndVerified(user)
-                .orElseThrow(() -> new InvalidTokenException("OTP", "OTP not verified"));
-
-        // Check passwords match
+        // **First check if passwords match before checking OTP**
         if (!resetPasswordDTO.getNewPassword().equals(resetPasswordDTO.getRepeatPassword())) {
             throw new PasswordNotMatchException("Password and Confirm Password do not match. Please try again.");
         }
+
+        PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByUserAndVerified(user)
+                .orElseThrow(() -> new InvalidTokenException("OTP", "OTP not verified"));
 
         user.setPassword(passwordEncoder.encode(resetPasswordDTO.getNewPassword()));
         userRepository.save(user);
