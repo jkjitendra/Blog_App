@@ -115,24 +115,4 @@ public class ReactionServiceImpl implements ReactionService {
         }
     }
 
-//    public ReactionSummaryResponse getReactionCountsForPost(Long postId) {
-//        List<ReactionModel> reactions = this.reactionRepository.findByPostId(postId);
-//
-//        return calculateReactionSummary(reactions);
-//    }
-//
-//    public ReactionSummaryResponse getReactionCountsForComment(Long commentId) {
-//        List<ReactionModel> reactions = this.reactionRepository.findByCommentId(commentId);
-//
-//        return calculateReactionSummary(reactions);
-//    }
-//
-//    private ReactionSummaryResponse calculateReactionSummary(List<ReactionModel> reactions) {
-//        Map<String, Long> emojiCounts = reactions.stream()
-//                .collect(Collectors.groupingBy(ReactionModel::getEmoji, Collectors.counting()));
-//
-//        long totalReactions = reactions.size();
-//
-//        return new ReactionSummaryResponse(emojiCounts, totalReactions);
-//    }
 }
