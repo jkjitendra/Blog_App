@@ -1,6 +1,9 @@
 package com.jk.blog.service.impl;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jk.blog.dto.profile.ProfileRequestBody;
 import com.jk.blog.dto.profile.ProfileResponseBody;
 import com.jk.blog.entity.Profile;
@@ -9,7 +12,6 @@ import com.jk.blog.exception.FieldUpdateNotAllowedException;
 import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.exception.UnAuthorizedException;
 import com.jk.blog.repository.ProfileRepository;
-import com.jk.blog.repository.UserRepository;
 import com.jk.blog.service.FileService;
 import com.jk.blog.service.ProfileService;
 import com.jk.blog.utils.AuthUtil;
@@ -24,6 +26,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -32,9 +36,6 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Autowired
     private ProfileRepository profileRepository;
-
-    @Autowired
-    private UserRepository userRepository;
 
     @Autowired
     private ModelMapper modelMapper;
@@ -62,22 +63,16 @@ public class ProfileServiceImpl implements ProfileService {
 
         Profile existingProfile = fetchProfileByUserId(userId);
 
+        existingProfile.setAddress(requestBody.getAddress());
+        existingProfile.setAbout(requestBody.getAbout());
+        existingProfile.setSocialMediaLinks(requestBody.getSocialMediaLinks());
+
+        // Handle image update
         if (image != null && !image.isEmpty()) {
             String imageUrl = this.fileService.uploadImage(profileBucketPath + "/images_file/", image);
             existingProfile.setImageUrl(imageUrl);
-        }
-
-        if (requestBody.getAddress() != null) {
-            existingProfile.setAddress(requestBody.getAddress());
-        }
-        if (requestBody.getAbout() != null) {
-            existingProfile.setAbout(requestBody.getAbout());
-        }
-        if (requestBody.getImageUrl() != null) {
-            existingProfile.setImageUrl(requestBody.getImageUrl());
-        }
-        if (requestBody.getSocialMediaLinks() != null) {
-            existingProfile.setSocialMediaLinks(requestBody.getSocialMediaLinks());
+        } else {
+            existingProfile.setImageUrl(null);
         }
 
         Profile updatedProfile = this.profileRepository.save(existingProfile);
@@ -91,19 +86,24 @@ public class ProfileServiceImpl implements ProfileService {
 
         Profile profile = fetchProfileByUserId(userId);
 
+        // Fix: Convert immutable map to mutable map before modifying
+        Map<String, Object> mutableUpdates = (updates == null) ? new HashMap<>() : new HashMap<>(updates);
+
         if (image != null && !image.isEmpty()) {
             String imageUrl = this.fileService.uploadImage(profileBucketPath + "/images_file/", image);
-            updates.put("imageUrl", imageUrl);
+            mutableUpdates.put("imageUrl", imageUrl);
         }
 
-        updates.forEach((key, value) -> {
+        mutableUpdates.forEach((key, value) -> {
             if ("profileId".equals(key) || "userId".equals(key)) {
                 throw new FieldUpdateNotAllowedException("Updating the field '" + key + "' is not allowed");
             }
             Field field = ReflectionUtils.findField(Profile.class, key);
             if (field != null) {
                 field.setAccessible(true);
-                ReflectionUtils.setField(field, profile, value);
+                // Convert value to the correct field type to avoid ClassCastException
+                Object convertedValue = convertValueToFieldType(field, value);
+                ReflectionUtils.setField(field, profile, convertedValue);
             }
         });
 
@@ -128,15 +128,37 @@ public class ProfileServiceImpl implements ProfileService {
         }
     }
 
-    /**
-     * Fetches the Profile entity associated with a specific user ID.
-     * @param userId The ID of the user whose profile needs to be fetched.
-     * @return The Profile entity associated with the given user ID.
-     * @throws ResourceNotFoundException if the profile does not exist.
-     */
     private Profile fetchProfileByUserId(Long userId) {
         return this.profileRepository
                 .findByUser_UserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Profile", "userId", userId));
     }
+
+    private Object convertValueToFieldType(Field field, Object value) {
+        Class<?> fieldType = field.getType();
+
+        if (value == null) {
+            return null;
+        }
+        if (fieldType == String.class) {
+            return value.toString();
+        }
+        if (fieldType == List.class) {
+            // Handle List<String> for `socialMediaLinks`
+            if (value instanceof List<?>) {
+                return value;
+            }
+
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                return objectMapper.readValue(value.toString(), new TypeReference<List<String>>() {});
+            } catch (JsonProcessingException e) {
+                throw new IllegalArgumentException("Invalid JSON format for socialMediaLinks", e);
+            }
+        }
+
+        return value;
+    }
+
+
 }
