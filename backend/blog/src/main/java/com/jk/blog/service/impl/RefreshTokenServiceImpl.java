@@ -64,9 +64,6 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
             throw new TokenExpiredException("refreshToken");
         }
 
-        // Force initialization of permissions to avoid LazyInitializationException
-//        rfToken.getUser().getRoles().forEach(role -> Hibernate.initialize(role.getPermissions()));
-
         return rfToken;
     }
 
