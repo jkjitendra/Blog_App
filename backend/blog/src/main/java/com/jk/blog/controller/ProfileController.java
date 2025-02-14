@@ -1,6 +1,7 @@
 package com.jk.blog.controller;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jk.blog.constants.SecurityConstants;
@@ -13,6 +14,7 @@ import com.jk.blog.service.ProfileService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -73,11 +75,18 @@ public class ProfileController implements ProfileApi {
     public ResponseEntity<APIResponse<ProfileResponseBody>> patchUsersProfile(
                                           @RequestPart("profile") String updatesJson,
                                           @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
-        Map<String, Object> updates = new ObjectMapper().readValue(updatesJson, new TypeReference<>() {});
-        Long userId = authenticationFacade.getAuthenticatedUserId();
 
-        ProfileResponseBody profileResponseBody = profileService.patchProfile(updates, userId, image);
-        return ResponseEntity.ok(new APIResponse<>(true, "Profile patched successfully", profileResponseBody));
+        try {
+            Map<String, Object> updates = new ObjectMapper().readValue(updatesJson, new TypeReference<>() {});
+            Long userId = authenticationFacade.getAuthenticatedUserId();
+
+            ProfileResponseBody profileResponseBody = profileService.patchProfile(updates, userId, image);
+            return ResponseEntity.ok(new APIResponse<>(true, "Profile patched successfully", profileResponseBody));
+
+        } catch (JsonProcessingException e) {
+            throw new BadRequestException("Invalid JSON format for profile updates");
+        }
+
     }
 
     /**
