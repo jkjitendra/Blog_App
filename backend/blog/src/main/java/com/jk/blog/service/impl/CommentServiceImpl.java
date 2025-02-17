@@ -9,7 +9,6 @@ import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.exception.UnAuthorizedException;
 import com.jk.blog.repository.CommentRepository;
 import com.jk.blog.repository.PostRepository;
-import com.jk.blog.repository.UserRepository;
 import com.jk.blog.service.CommentService;
 import com.jk.blog.utils.AuthUtil;
 import com.jk.blog.utils.DateTimeUtil;
@@ -28,8 +27,6 @@ public class CommentServiceImpl implements CommentService {
 
     @Autowired
     private CommentRepository commentRepository;
-    @Autowired
-    private UserRepository userRepository;
     @Autowired
     private PostRepository postRepository;
     @Autowired
@@ -183,7 +180,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     private Post fetchPostById(Long postId) {
-        return postRepository.findById(postId)
+        return this.postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post", "postId", postId));
     }
 
