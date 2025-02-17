@@ -42,8 +42,6 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private EmailService emailService;
     @Autowired
-    private ModelMapper modelMapper;
-    @Autowired
     private AuthenticationFacade authenticationFacade;
     @Autowired
     private AuthenticationManager authenticationManager;
