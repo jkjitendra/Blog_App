@@ -6,6 +6,7 @@ import com.jk.blog.dto.AuthDTO.*;
 import com.jk.blog.dto.user.UserResponseBody;
 import com.jk.blog.entity.RefreshToken;
 import com.jk.blog.entity.User;
+import com.jk.blog.exception.InvalidTokenException;
 import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.exception.TokenExpiredException;
 import com.jk.blog.repository.UserRepository;
@@ -195,14 +196,30 @@ public class AuthController implements AuthApi {
 
     @PostMapping("/verify-otp")
     public ResponseEntity<APIResponse<String>> verifyOtp(@RequestBody VerifyOtpDTO verifyOtpDTO) {
-        this.passwordResetService.verifyOtp(verifyOtpDTO);
-        return ResponseEntity.ok(new APIResponse<>(true, "OTP verified."));
+        try {
+            this.passwordResetService.verifyOtp(verifyOtpDTO);
+            return ResponseEntity.ok(new APIResponse<>(true, "OTP verified."));
+        } catch (InvalidTokenException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new APIResponse<>(false, ex.getMessage(), null, ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new APIResponse<>(false, "Unexpected error", null, ex.getMessage()));
+        }
     }
 
     @PostMapping("/reset-password")
     public ResponseEntity<APIResponse<String>> resetPassword(@RequestBody ResetPasswordDTO resetPasswordDTO) {
-        this.passwordResetService.resetPassword(resetPasswordDTO);
-        return ResponseEntity.ok(new APIResponse<>(true, "Password reset successful."));
+        try {
+            this.passwordResetService.resetPassword(resetPasswordDTO);
+            return ResponseEntity.ok(new APIResponse<>(true, "Password reset successful."));
+        } catch (InvalidTokenException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new APIResponse<>(false, ex.getMessage(), null, ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new APIResponse<>(false, "Unexpected error", null, ex.getMessage()));
+        }
     }
 
     @PostMapping("/activate")
