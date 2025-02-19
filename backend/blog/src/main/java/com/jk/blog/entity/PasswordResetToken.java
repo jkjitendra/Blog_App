@@ -16,7 +16,7 @@
     private Long id;
 
     @Column(nullable = false)
-    private Integer otp;
+    private String otp;
 
     @Column(nullable = false)
     private Instant expirationTime;
