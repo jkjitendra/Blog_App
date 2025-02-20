@@ -12,7 +12,7 @@ import java.util.Optional;
 
 public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, Long> {
 
-    Optional<PasswordResetToken> findByOtpAndUser(Integer otp, User user);
+    Optional<PasswordResetToken> findByOtpAndUser(String otp, User user);
 
     @Query("SELECT p FROM PasswordResetToken p WHERE p.user = :user AND p.verified = true")
     Optional<PasswordResetToken> findByUserAndVerified(@Param("user") User user);
