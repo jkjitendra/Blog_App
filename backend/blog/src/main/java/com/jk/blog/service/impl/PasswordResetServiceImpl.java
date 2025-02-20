@@ -57,7 +57,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         passwordResetTokenRepository.deleteByUser(user);
 
         // Generate OTP
-        int otp = GeneratorUtils.generateOTP();
+        String otp = String.valueOf(GeneratorUtils.generateOTP());
 
         // Save OTP
         saveOtpToken(user, otp);
@@ -119,7 +119,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     /**
      * Saves OTP Token in Database
      */
-    private void saveOtpToken(User user, int otp) {
+    private void saveOtpToken(User user, String otp) {
         PasswordResetToken passwordResetToken = new PasswordResetToken();
         passwordResetToken.setOtp(otp);
         passwordResetToken.setUser(user);
@@ -131,7 +131,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     /**
      * Sends OTP Email
      */
-    private void sendOtpEmail(String email, int otp) {
+    private void sendOtpEmail(String email, String otp) {
         MailBody mailBody = MailBody.builder()
                 .to(email)
                 .subject("Your OTP Code")
