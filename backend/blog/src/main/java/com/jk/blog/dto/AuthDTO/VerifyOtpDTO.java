@@ -14,5 +14,5 @@ public class VerifyOtpDTO {
     private String email;
 
     @NotNull(message = "OTP cannot be null")
-    private Integer otp;
+    private String otp;
 }

@@ -52,7 +52,7 @@ class PasswordResetServiceImplTest {
     private ArgumentCaptor<PasswordResetToken> tokenCaptor;
 
     private static final String TEST_EMAIL = "test@example.com";
-    private static final int TEST_OTP = 123456;
+    private static final String TEST_OTP = "123456";
 
     private User testUser;
     private PasswordResetToken passwordResetToken;
