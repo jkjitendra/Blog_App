@@ -119,5 +119,37 @@ class ReactionControllerTest {
         assertEquals("Invalid reaction data", response.getBody().getMessage());
 
         verify(reactionService, never()).reactToComment(anyLong(), anyLong(), anyString());
+
+    @BeforeEach
+    void setUp() {
+        reactionRequest = new ReactionRequest();
+        reactionRequest.setEmoji("👍");
+    }
+
+    @Test
+    void test_reactToPost_whenValidRequest_returnSuccessMessage() {
+        doNothing().when(reactionService).reactToPost(1L, "👍");
+
+        ResponseEntity<APIResponse<String>> response = reactionController.reactToPost(1L, reactionRequest);
+
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody().getSuccess());
+
+        verify(reactionService, times(1)).reactToPost(1L, "👍");
+    }
+
+    @Test
+    void test_getReactionCountsForPost_whenValidPostId_returnCounts() {
+        ReactionSummaryResponse summary = new ReactionSummaryResponse();
+        when(reactionService.getReactionCountsForPost(1L)).thenReturn(summary);
+
+        ResponseEntity<APIResponse<ReactionSummaryResponse>> response = reactionController.getReactionCountsForPost(1L);
+
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        verify(reactionService, times(1)).getReactionCountsForPost(1L);
+
     }
 }
