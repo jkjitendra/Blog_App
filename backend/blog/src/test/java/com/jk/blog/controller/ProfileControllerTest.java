@@ -109,4 +109,17 @@ class ProfileControllerTest {
         verify(profileService, times(1)).deleteProfile(1L);
     }
 
+    @Test
+    void test_patchUsersProfile_whenInvalidJsonProvided_throwBadRequestException() throws IOException {
+
+        String invalidJson = "{invalidJson";
+        MultipartFile mockFile = mock(MultipartFile.class);
+
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> profileController.patchUsersProfile(invalidJson, mockFile)
+        );
+
+        assertEquals("Invalid JSON format for profile updates", exception.getMessage());
+    }
 }
