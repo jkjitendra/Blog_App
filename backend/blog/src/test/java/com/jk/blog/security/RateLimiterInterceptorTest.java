@@ -82,15 +82,13 @@ class RateLimiterInterceptorTest {
     }
 
     @Test
-    void test_preHandle_WhenUnknownActionType_ShouldThrowRateLimitConfigurationException() {
+    void test_preHandle_WhenActionTypeIsNull_DoNothing() throws Exception {
         // Simulate an unknown action type
-        when(request.getRequestURI()).thenReturn("/api/v1/unknown-action");
+        when(request.getRequestURI()).thenReturn("/api/v1/health");
 
-        // Expect RateLimitConfigurationException to be thrown
-        RateLimitConfigurationException exception = assertThrows(RateLimitConfigurationException.class, () -> {
-            rateLimitInterceptor.preHandle(request, response, new Object());
-        });
+        boolean result = rateLimitInterceptor.preHandle(request, response, new Object());
 
-        assertEquals("Unknown rate limit action type: UNKNOWN", exception.getMessage());
+        assertTrue(result, "Should return true for other urls without applying rate limiting.");
+
     }
 }
