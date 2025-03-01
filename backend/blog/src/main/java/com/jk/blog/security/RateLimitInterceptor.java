@@ -100,6 +100,6 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         if (requestURI.contains("/api/v1/auth/forgot-password")) return "OTP_REQUEST";
         if (requestURI.contains("/api/v1/auth/verify-otp")) return "OTP_VERIFY";
         if (requestURI.contains("/api/v1/auth/reset-password")) return "PASSWORD_RESET";
-        return "UNKNOWN";
+        return null;
     }
 }
