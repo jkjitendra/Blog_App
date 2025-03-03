@@ -126,7 +126,7 @@ public class PostServiceImpl implements PostService {
 
         Pageable pageable = PageRequest.of(pageNumber, pageSize, resolveSort(sortBy, sortDirection));
 
-        Page<Post> pagePost = authenticationFacade.hasAnyRole("SUBSCRIBER")
+        Page<Post> pagePost = authenticationFacade.hasAnyRole("ROLE_SUBSCRIBER")
                 ? postRepository.findByIsLiveTrueAndIsPostDeletedFalse(pageable)
                 : postRepository.findPublicPosts(pageable);
 
@@ -222,15 +222,18 @@ public class PostServiceImpl implements PostService {
 
         User authenticatedUser = AuthUtil.getAuthenticatedUser();
 
+        if (authenticatedUser == null) {
+            throw new UnAuthorizedException("User must be logged in to get archived posts.");
+        }
+
         boolean isAdminOrModerator = authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR");
 
         Pageable pageable = PageRequest.of(pageNumber, pageSize, resolveSort(sortBy, sortDirection));
-
         Page<Post> pagePost = this.postRepository.findActiveAndArchivedPosts(pageable);
 
         // Filter posts: Allow access only if the user is the owner or has privileged roles and map filtered posts to response DTOs
         List<PostResponseBody> filteredPosts = pagePost.getContent().stream()
-                .filter(post -> authenticatedUser != null && post.getUser().getUserId().equals(authenticatedUser.getUserId()) || isAdminOrModerator)
+                .filter(post -> post.getUser().getUserId().equals(authenticatedUser.getUserId()) || isAdminOrModerator)
                 .map(PostMapper::postToPostResponseBody)
                 .toList();
 
@@ -293,8 +296,6 @@ public class PostServiceImpl implements PostService {
 
         this.postRepository.delete(existingPost);
 
-//        log.info("Post with ID {} deleted by user {}", postId, authenticatedUser.getUserId());
-
     }
 
     @Override
@@ -309,7 +310,7 @@ public class PostServiceImpl implements PostService {
         Page<Post> pagePost = this.postRepository.findByUser(existingUser, pageable);
 
         List<PostResponseBody> postResponseBodyList = pagePost.getContent().stream()
-                .map(post -> this.modelMapper.map(post, PostResponseBody.class))
+                .map(PostMapper::postToPostResponseBody)
                 .toList();
 
         return buildPageableResponse(pagePost, postResponseBodyList);
@@ -325,7 +326,7 @@ public class PostServiceImpl implements PostService {
         Page<Post> pagePost = this.postRepository.findByCategory(existingCategory, pageable);
 
         List<PostResponseBody> postResponseBodyList = pagePost.stream()
-                               .map((eachPost) -> this.modelMapper.map(eachPost, PostResponseBody.class))
+                               .map(PostMapper::postToPostResponseBody)
                                .collect(Collectors.toList());
 
         return buildPageableResponse(pagePost, postResponseBodyList);
@@ -340,7 +341,7 @@ public class PostServiceImpl implements PostService {
         Page<Post> pagePost = this.postRepository.searchKeyOnTitle("%" + keyword + "%", pageable);
 
         List<PostResponseBody> postResponseBodyList = pagePost.stream()
-                .map((eachPost) -> this.modelMapper.map(eachPost, PostResponseBody.class))
+                .map(PostMapper::postToPostResponseBody)
                 .collect(Collectors.toList());
 
         return buildPageableResponse(pagePost, postResponseBodyList);
@@ -375,25 +376,27 @@ public class PostServiceImpl implements PostService {
         Post existingPost = fetchPostById(postId);
 
         validateModificationAuthorization(existingPost, "activate");
-        
+
         Instant cutoff = Instant.now().minus(90, ChronoUnit.DAYS);
         if (existingPost.isPostDeleted() && existingPost.getPostDeletionTimestamp().isAfter(cutoff)) {
             existingPost.setPostDeleted(false);
             existingPost.setPostDeletionTimestamp(null);
             existingPost.getComments().forEach(comment -> {
-                if (comment.isCommentDeleted() 
-                    && comment.getCommentDeletionTimestamp() != null 
-                    && comment.getCommentDeletionTimestamp().isAfter(cutoff)) {
-                        comment.setCommentDeleted(false);
-                        comment.setCommentLastUpdatedDate(Instant.now());
-                        comment.setCommentDeletionTimestamp(null);
+                if (comment.isCommentDeleted()
+                        && comment.getCommentDeletionTimestamp() != null
+                        && comment.getCommentDeletionTimestamp().isAfter(cutoff)) {
+                    comment.setCommentDeleted(false);
+                    comment.setCommentLastUpdatedDate(Instant.now());
+                    comment.setCommentDeletionTimestamp(null);
                 }
             });
-        }
-        existingPost.setPostLastUpdatedDate(Instant.now());
 
-        Post updatedPost = this.postRepository.save(existingPost);
-        return PostMapper.postToPostResponseBody(updatedPost);
+            existingPost.setPostLastUpdatedDate(Instant.now());
+            existingPost = this.postRepository.save(existingPost);
+        }
+
+        // Ensure we return the correct post response even if not saved
+        return PostMapper.postToPostResponseBody(existingPost);
     }
 
     // ===================================== PRIVATE HELPERS =====================================
