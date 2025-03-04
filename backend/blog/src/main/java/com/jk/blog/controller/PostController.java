@@ -56,7 +56,7 @@ public class PostController implements PostApi {
     private String postBucketPath;
 
     @PreAuthorize("hasAuthority('POST_WRITE')")
-    @PostMapping(value = "/posts", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<APIResponse<PostResponseBody>> createPost(
                                                        @Valid @RequestPart("post") String postRequestBody,
                                                        @RequestPart(value = "image", required = false) MultipartFile image,
@@ -86,7 +86,7 @@ public class PostController implements PostApi {
         return ResponseEntity.ok(new APIResponse<>(true, "Post fetched successfully", existingPostRequestBody));
     }
 
-    @PutMapping(value = "/posts/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<APIResponse<Void>> updatePost(
                                                        @PathVariable Long postId,
                                                        @Valid @RequestPart("post") String postRequestBody,
@@ -100,7 +100,7 @@ public class PostController implements PostApi {
     }
 
     @PreAuthorize("hasAuthority('POST_WRITE')")
-    @PatchMapping(value = "/posts/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PatchMapping(value = "/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<APIResponse<Void>> patchPost(
                                                        @PathVariable Long postId,
                                                        @RequestPart("post") String updatesJson,
@@ -158,7 +158,7 @@ public class PostController implements PostApi {
     }
 
     @PreAuthorize("hasAuthority('POST_DELETE')")
-    @DeleteMapping("/posts/{postId}")
+    @DeleteMapping("/{postId}")
     public ResponseEntity<APIResponse<Void>> deletePost(@PathVariable Long postId) {
 
         this.postService.deletePost(postId);
@@ -180,7 +180,7 @@ public class PostController implements PostApi {
     }
 
     @PreAuthorize("hasAuthority('POST_READ')")
-    @GetMapping("/user/{username}/posts")
+    @GetMapping("/user/{username}")
     public ResponseEntity<APIResponse<PageableResponse<PostResponseBody>>> getPostsByUser(
             @PathVariable String username,
             @RequestParam(value = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
@@ -193,7 +193,7 @@ public class PostController implements PostApi {
     }
 
     @PreAuthorize("hasAuthority('POST_READ')")
-    @GetMapping("/category/{categoryId}/posts")
+    @GetMapping("/category/{categoryId}")
     public ResponseEntity<APIResponse<PageableResponse<PostResponseBody>>> getPostsByCategory(
             @PathVariable Long categoryId,
             @RequestParam(value = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
@@ -234,7 +234,7 @@ public class PostController implements PostApi {
 
 
     @PreAuthorize("hasAuthority('POST_READ')")
-    @GetMapping(value = "/posts/image/{imageName}", produces = {MediaType.IMAGE_JPEG_VALUE,
+    @GetMapping(value = "/image/{imageName}", produces = {MediaType.IMAGE_JPEG_VALUE,
                                                 MediaType.IMAGE_GIF_VALUE, MediaType.IMAGE_PNG_VALUE})
     public void downloadImage(@PathVariable String imageName, HttpServletResponse httpServletResponse) throws IOException {
         InputStream resource = this.fileService.getResource(postBucketPath + "/images_file/", imageName);
