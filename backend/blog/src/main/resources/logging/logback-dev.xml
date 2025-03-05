@@ -8,4 +8,18 @@
     <root level="INFO">
         <appender-ref ref="DEV_CONSOLE" />
     </root>
+<!--    <appender name="DEV_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
+<!--        <file>logs/dev.log</file>-->
+<!--        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">-->
+<!--            <fileNamePattern>logs/dev.%d{yyyy-MM-dd}.log</fileNamePattern>-->
+<!--            <maxHistory>30</maxHistory> &lt;!&ndash; Keep logs for 30 days &ndash;&gt;-->
+<!--        </rollingPolicy>-->
+<!--        <encoder>-->
+<!--            <pattern>%d{yyyy-MM-dd HH:mm:ss} - [%thread] %-5level %logger{36} - %msg%n</pattern>-->
+<!--        </encoder>-->
+<!--    </appender>-->
+
+<!--    <root level="WARN">-->
+<!--        <appender-ref ref="DEV_FILE" />-->
+<!--    </root>-->
 </configuration>

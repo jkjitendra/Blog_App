@@ -15,7 +15,7 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
         config.addAllowedOrigin("http://localhost:5173");
-        config.addAllowedOrigin("http://localhost:9090/swagger-ui/index.html");
+        config.addAllowedOrigin("http://localhost:8080/swagger-ui/index.html");
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         source.registerCorsConfiguration("/**", config);
