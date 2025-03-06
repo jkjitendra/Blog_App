@@ -24,8 +24,7 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
 
-    @Column(unique = true, nullable = false)
-    @NotBlank(message = "username can't be blank")
+    @Column(unique = true, nullable = true)
     private String userName;
 
     @Column(nullable = false, length = 50)
@@ -36,24 +35,24 @@ public class User implements UserDetails {
     @NotBlank(message = "email can't be blank")
     private String email;
 
-    @Column(nullable = false)
-    @NotBlank(message = "password can't be blank")
+    @Column(nullable = true)
     private String password;
 
-    @Column(unique = true, nullable = false)
-    @NotBlank(message = "mobile number can't be blank")
+    @Column(nullable = true)
     private String mobile;
 
-    @Column(nullable = false)
-    @NotBlank(message = "country name can't be blank")
+    @Column(nullable = true)
     private String countryName;
 
+    @Column(nullable = false)
+    private String provider; // Values: "local", "google", "github", "facebook"
+
+    @Column(nullable = true) // Only for OAuth users
+    private String providerId;
+
     private Instant userCreatedDate;
-
     private Instant userLastLoggedInDate;
-
     private boolean isUserDeleted = false;
-
     private Instant userDeletionTimestamp;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -79,18 +78,11 @@ public class User implements UserDetails {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private PasswordResetToken passwordResetToken;
 
-    // Method to be called when user logs in, to update last logged in time
     public void updateLastLoggedIn() {
         this.userLastLoggedInDate = Instant.now();
     }
 
-
-//    @Override
-//    public Collection<? extends GrantedAuthority> getAuthorities() {
-//        return List.of(new SimpleGrantedAuthority(getRoles().toString()));
-//    }
-
-// Fetch permissions dynamically from roles
+    // Fetch permissions dynamically from roles
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         Set<GrantedAuthority> authorities = new HashSet<>();
@@ -111,11 +103,11 @@ public class User implements UserDetails {
 
     @Override
     public String getPassword() {
-        return password;
+        return "local".equals(provider) ? password : "";
     }
     @Override
     public String getUsername() {
-        return userName;
+        return email; // Always use email for authentication as userName is not always available for OAuth users.
     }
     @Override
     public boolean isAccountNonExpired() {
