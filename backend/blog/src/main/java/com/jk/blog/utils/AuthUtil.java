@@ -1,5 +1,6 @@
 package com.jk.blog.utils;
 
+import com.jk.blog.dto.AuthDTO.AuthenticatedUserDTO;
 import org.springframework.stereotype.Component;
 import com.jk.blog.entity.User;
 import com.jk.blog.exception.ResourceNotFoundException;
@@ -10,11 +11,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 @Component
 public class AuthUtil {
 
-    private static UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    // Constructor-based dependency injection
     public AuthUtil(UserRepository userRepository) {
-        AuthUtil.userRepository = userRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -22,11 +22,14 @@ public class AuthUtil {
      * @return Authenticated User entity.
      * @throws ResourceNotFoundException if user is not found.
      */
-    public static User getAuthenticatedUser() {
+    public AuthenticatedUserDTO getAuthenticatedUser() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (principal instanceof UserDetails) {
-            return userRepository.findByEmail(((UserDetails) principal).getUsername())
-                    .orElseThrow(() -> new ResourceNotFoundException("User", "email", ((UserDetails) principal).getUsername()));
+            String email = ((UserDetails) principal).getUsername();
+
+            return userRepository.findByEmail(email)
+                    .map(AuthenticatedUserDTO::fromUser)
+                    .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
         }
         return null;
     }
@@ -37,7 +40,7 @@ public class AuthUtil {
      * @param role The role to check.
      * @return true if the user has the role, false otherwise.
      */
-    public static boolean userHasRole(User user, String role) {
+    public boolean userHasRole(User user, String role) {
         return user.getRoles().stream().anyMatch(r -> r.getName().equals("ROLE_" + role));
     }
 }
