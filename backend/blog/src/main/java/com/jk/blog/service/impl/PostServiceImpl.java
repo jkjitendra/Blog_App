@@ -1,6 +1,7 @@
 package com.jk.blog.service.impl;
 
 import com.jk.blog.constants.AppConstants;
+import com.jk.blog.dto.AuthDTO.AuthenticatedUserDTO;
 import com.jk.blog.dto.PageableResponse;
 import com.jk.blog.dto.comment.CommentResponseBody;
 import com.jk.blog.dto.post.PostMapper;
@@ -62,6 +63,9 @@ public class PostServiceImpl implements PostService {
     private AuthenticationFacade authenticationFacade;
 
     @Autowired
+    private AuthUtil authUtil;
+
+    @Autowired
     @Qualifier("localFileService")
     private FileService fileService;
 
@@ -72,18 +76,17 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public PostResponseBody createPost(PostRequestBody postRequestBody, MultipartFile image, MultipartFile video) throws IOException {
         // Get the authenticated user
-        User user = AuthUtil.getAuthenticatedUser();
-        if (user == null) {
+        AuthenticatedUserDTO authUser = authUtil.getAuthenticatedUser();
+        if (authUser == null) {
             throw new UnAuthorizedException("User must be logged in to create a post.");
         }
+
         Category category = fetchCategoryById(postRequestBody.getCategoryId());
 
-        Post post = PostMapper.postRequestBodyToPost(postRequestBody, user, category);
+        Post post = PostMapper.postRequestBodyToPost(postRequestBody, authUser.getUser(), category);
 
         handleMediaUpload(post, image, video);
 
-//        post.setImageUrl(postRequestBody.getImageUrl());
-//        post.setVideoUrl(postRequestBody.getVideoUrl());
         post.setMemberPost(authenticationFacade.hasAnyRole("ROLE_SUBSCRIBER", "ROLE_MODERATOR", "ROLE_ADMIN"));
         post.setLive(true);
         post.setArchived(false);
@@ -150,7 +153,12 @@ public class PostServiceImpl implements PostService {
 
         Post existingPost = fetchUnArchivedAndLivePostById(postId);
 
-        validateModificationAuthorization(existingPost, "update");
+        AuthenticatedUserDTO authUser = authUtil.getAuthenticatedUser();
+        if (authUser == null) {
+            throw new UnAuthorizedException("User must be logged in to update a post.");
+        }
+
+        validateModificationAuthorization(existingPost, authUser, "update");
 
         // Update all properties
         updatePostFields(existingPost, postRequestBody);
@@ -168,7 +176,12 @@ public class PostServiceImpl implements PostService {
 
         Post existingPost = fetchUnArchivedAndLivePostById(postId);
 
-        validateModificationAuthorization(existingPost, "patch");
+        AuthenticatedUserDTO authUser = authUtil.getAuthenticatedUser();
+        if (authUser == null) {
+            throw new UnAuthorizedException("User must be logged in to patch a post.");
+        }
+
+        validateModificationAuthorization(existingPost, authUser, "patch");
 
         patchPostFields(existingPost, postRequestBody);
         handleMediaUpload(existingPost, image, video);
@@ -184,7 +197,13 @@ public class PostServiceImpl implements PostService {
     public PostResponseBody archivePost(Long postId) {
 
         Post existingPost = fetchUnArchivedAndLivePostById(postId);
-        validateModificationAuthorization(existingPost, "archive");
+
+        AuthenticatedUserDTO authUser = authUtil.getAuthenticatedUser();
+        if (authUser == null) {
+            throw new UnAuthorizedException("User must be logged in to archive a post.");
+        }
+
+        validateModificationAuthorization(existingPost, authUser, "archive");
 
         existingPost.setArchived(true);
         existingPost.setPostLastUpdatedDate(Instant.now());
@@ -206,8 +225,13 @@ public class PostServiceImpl implements PostService {
             throw new InvalidPostStateException("Post is not archived and cannot be unarchived.");
         }
 
+        AuthenticatedUserDTO authUser = authUtil.getAuthenticatedUser();
+        if (authUser == null) {
+            throw new UnAuthorizedException("User must be logged in to unarchive a post.");
+        }
+
         // Allow unarchiving if the user owns the post or has admin/moderator role
-        validateModificationAuthorization(post, "unarchive");
+        validateModificationAuthorization(post, authUser, "unarchive");
 
         post.setArchived(false);
         post.setPostLastUpdatedDate(Instant.now());
@@ -220,10 +244,9 @@ public class PostServiceImpl implements PostService {
     @Transactional(readOnly = true)
     public PageableResponse<PostResponseBody> getArchivedPosts(Integer pageNumber, Integer pageSize, String sortBy, String sortDirection) {
 
-        User authenticatedUser = AuthUtil.getAuthenticatedUser();
-
+        AuthenticatedUserDTO authenticatedUser = authUtil.getAuthenticatedUser();
         if (authenticatedUser == null) {
-            throw new UnAuthorizedException("User must be logged in to get archived posts.");
+            throw new UnAuthorizedException("User must be logged in to get archived a post.");
         }
 
         boolean isAdminOrModerator = authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR");
@@ -233,7 +256,7 @@ public class PostServiceImpl implements PostService {
 
         // Filter posts: Allow access only if the user is the owner or has privileged roles and map filtered posts to response DTOs
         List<PostResponseBody> filteredPosts = pagePost.getContent().stream()
-                .filter(post -> post.getUser().getUserId().equals(authenticatedUser.getUserId()) || isAdminOrModerator)
+                .filter(post -> post.getUser().getEmail().equals(authenticatedUser.getEmail()) || isAdminOrModerator)
                 .map(PostMapper::postToPostResponseBody)
                 .toList();
 
@@ -243,9 +266,15 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public PostResponseBody togglePostVisibility(Long postId, boolean isLive) {
+
+        AuthenticatedUserDTO authenticatedUser = authUtil.getAuthenticatedUser();
+        if (authenticatedUser == null) {
+            throw new UnAuthorizedException("User must be logged in to toggle visibility of a post.");
+        }
+
         Post post = fetchPostById(postId);
 
-        validateModificationAuthorization(post, "toggle visibility of");
+        validateModificationAuthorization(post, authenticatedUser, "toggle visibility of");
 
         post.setLive(isLive);
         post.setPostLastUpdatedDate(Instant.now());
@@ -256,18 +285,26 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public PostResponseBody setAsMemberPost(Long postId) {
-        User authenticatedUser = AuthUtil.getAuthenticatedUser();
+    public PostResponseBody toggleMemberPostVisibility(Long postId, boolean visible) {
+        AuthenticatedUserDTO authenticatedUser = authUtil.getAuthenticatedUser();
+        if (authenticatedUser == null) {
+            throw new UnAuthorizedException("User must be logged in to mark a post as member post.");
+        }
+
+        boolean isSubscriber = authenticatedUser.getRoles().contains("ROLE_SUBSCRIBER");
+        if (!isSubscriber) {
+            throw new UnAuthorizedException("Only subscribers can mark posts as member posts.");
+        }
 
         Post existingPost = fetchUnArchivedAndLivePostById(postId);
 
         // Ensure the post belongs to the authenticated user
-        if (authenticatedUser != null && !existingPost.getUser().getUserId().equals(authenticatedUser.getUserId())) {
+        if (!existingPost.getUser().getEmail().equals(authenticatedUser.getEmail())) {
             throw new UnAuthorizedException("You can only mark your own posts as member posts.");
         }
 
         // Mark the existingPost as a member post
-        existingPost.setMemberPost(true);
+        existingPost.setMemberPost(visible);
         existingPost.setPostLastUpdatedDate(Instant.now());
 
         Post updatedPost = this.postRepository.save(existingPost);
@@ -278,16 +315,15 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public void deletePost(Long postId) {
 
-        User authenticatedUser = AuthUtil.getAuthenticatedUser();
-
+        AuthenticatedUserDTO authenticatedUser = authUtil.getAuthenticatedUser();
         if (authenticatedUser == null) {
-            throw new UnAuthorizedException("You are not authorized to delete this post.");
+            throw new UnAuthorizedException("User is not authorized to delete this post.");
         }
 
         Post existingPost = fetchPostById(postId);
 
         // Allow deletion if the user owns the post OR has privileged roles
-        validateModificationAuthorization(existingPost, "delete");
+        validateModificationAuthorization(existingPost, authenticatedUser, "delete");
 
         // Additional Check: Ensure the post is not already deleted (soft delete case)
         if (existingPost.isPostDeleted()) {
@@ -353,7 +389,12 @@ public class PostServiceImpl implements PostService {
 
         Post existingPost = fetchPostById(postId);
 
-        validateModificationAuthorization(existingPost, "deactivate");
+        AuthenticatedUserDTO authenticatedUser = authUtil.getAuthenticatedUser();
+        if (authenticatedUser == null) {
+            throw new UnAuthorizedException("User is not authorized to deactivate this post.");
+        }
+
+        validateModificationAuthorization(existingPost, authenticatedUser, "deactivate");
 
         Instant currentTimestamp = Instant.now();
         existingPost.setPostDeleted(true);
@@ -375,7 +416,12 @@ public class PostServiceImpl implements PostService {
 
         Post existingPost = fetchPostById(postId);
 
-        validateModificationAuthorization(existingPost, "activate");
+        AuthenticatedUserDTO authenticatedUser = authUtil.getAuthenticatedUser();
+        if (authenticatedUser == null) {
+            throw new UnAuthorizedException("User is not activate to delete this post.");
+        }
+
+        validateModificationAuthorization(existingPost, authenticatedUser, "activate");
 
         Instant cutoff = Instant.now().minus(90, ChronoUnit.DAYS);
         if (existingPost.isPostDeleted() && existingPost.getPostDeletionTimestamp().isAfter(cutoff)) {
@@ -440,11 +486,18 @@ public class PostServiceImpl implements PostService {
                 .collect(Collectors.toSet());
     }
 
-    private void validateModificationAuthorization(Post post, String action) {
-        User authenticatedUser = AuthUtil.getAuthenticatedUser();
+//    private void validateModificationAuthorization(Post post, String action) {
+//        User authenticatedUser = authUtil.getAuthenticatedUser();
+//        boolean isAdminOrModerator = authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR");
+//
+//        if (authenticatedUser == null || (!post.getUser().getUserId().equals(authenticatedUser.getUserId()) && !isAdminOrModerator)) {
+//            throw new UnAuthorizedException("You do not have permission to %s this post.", action);
+//        }
+//    }
+    private void validateModificationAuthorization(Post post, AuthenticatedUserDTO authUser, String action) {
         boolean isAdminOrModerator = authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR");
 
-        if (authenticatedUser == null || (!post.getUser().getUserId().equals(authenticatedUser.getUserId()) && !isAdminOrModerator)) {
+        if (!post.getUser().getEmail().equals(authUser.getEmail()) && !isAdminOrModerator) {
             throw new UnAuthorizedException("You do not have permission to %s this post.", action);
         }
     }

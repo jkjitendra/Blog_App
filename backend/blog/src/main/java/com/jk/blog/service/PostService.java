@@ -104,7 +104,7 @@ public interface PostService {
      * @throws ResourceNotFoundException if the post is not found.
      * @throws UnAuthorizedException if the user is not authorized to mark the post as a member post.
      */
-    PostResponseBody setAsMemberPost(Long postId);
+    PostResponseBody toggleMemberPostVisibility(Long postId, boolean visible);
 
     /**
      * Deletes a post permanently from the system.
