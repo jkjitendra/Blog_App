@@ -3,11 +3,14 @@ package com.jk.blog.config;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jk.blog.constants.SecurityConstants;
-import com.jk.blog.entity.OAuthUser;
+import com.jk.blog.entity.Profile;
 import com.jk.blog.entity.RefreshToken;
 import com.jk.blog.entity.Role;
+import com.jk.blog.entity.User;
 import com.jk.blog.exception.ResourceNotFoundException;
-import com.jk.blog.repository.OAuthUserRepository;
+import com.jk.blog.oauth.ProfileImageFetcherFactory;
+import com.jk.blog.repository.ProfileRepository;
+import com.jk.blog.repository.RoleRepository;
 import com.jk.blog.repository.UserRepository;
 import com.jk.blog.service.RefreshTokenService;
 import com.jk.blog.utils.JwtUtil;
@@ -42,11 +45,12 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.springframework.boot.autoconfigure.security.servlet.PathRequest.toH2Console;
 
@@ -60,7 +64,10 @@ public class SecurityConfig {
     private UserRepository userRepository;
 
     @Autowired
-    private OAuthUserRepository oAuthUserRepository;
+    private ProfileRepository profileRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
 
     @Autowired
     private JwtRequestFilter jwtRequestFilter;
@@ -70,6 +77,9 @@ public class SecurityConfig {
 
     @Autowired
     private RefreshTokenService refreshTokenService;
+
+    @Autowired
+    private ProfileImageFetcherFactory profileImageFetcherFactory;
 
     @Value("${app.cookie.secure}")
     private boolean isCookieSecure;
@@ -107,29 +117,28 @@ public class SecurityConfig {
                               .oidcUserService(oidcUserService()) // Google (OIDC)
                               .userService(oAuth2UserService()) // Facebook, GitHub (OAuth2)
                       )
-                      .successHandler((request, response, authentication) -> {
-                          response.setContentType("application/json");
-                          response.setCharacterEncoding("UTF-8");
-
-                          OAuth2User user = (OAuth2User) authentication.getPrincipal();
-                          String token = user.getAttribute("token");
-                          String refreshToken = user.getAttribute("refresh_token");
-
-                          ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", refreshToken)
-                                  .httpOnly(true)
-                                  .secure(isCookieSecure) // Set to false for local testing
-                                  .path("/")
-                                  .maxAge(refreshExpirationTime/1000) // 7 days
-                                  .sameSite("Strict")
-                                  .build();
-                          response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
-
-                          response.getWriter().write("{\"token\":\"" + token + "\"}");
-                          response.getWriter().flush();
-                      })
+//                      .successHandler((request, response, authentication) -> {
+//                          response.setContentType("application/json");
+//                          response.setCharacterEncoding("UTF-8");
+//
+//                          OAuth2User user = (OAuth2User) authentication.getPrincipal();
+//                          String token = user.getAttribute("token");
+//                          String refreshToken = user.getAttribute("refresh_token");
+//
+//                          ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", refreshToken)
+//                                  .httpOnly(true)
+//                                  .secure(isCookieSecure) // Set to false for local testing
+//                                  .path("/")
+//                                  .maxAge(refreshExpirationTime/1000) // 7 days
+//                                  .sameSite("Strict")
+//                                  .build();
+//                          response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+//
+//                          response.getWriter().write("{\"token\":\"" + token + "\"}");
+//                          response.getWriter().flush();
+//                      })
               )
               .csrf(csrf -> csrf.ignoringRequestMatchers(toH2Console()).disable())
-//              .formLogin(AbstractAuthenticationFilterConfigurer::permitAll)
               .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
               .logout(LogoutConfigurer::permitAll);
 
@@ -191,6 +200,8 @@ public class SecurityConfig {
     private OAuth2User processOAuthUser(org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest userRequest, OAuth2User oAuth2User, String provider) {
         String email = oAuth2User.getAttribute("email");
         String name = oAuth2User.getAttribute("name");
+        String profileImage = "github".equals(provider) ? oAuth2User.getAttribute("avatar_url") : oAuth2User.getAttribute("photos") ;
+
 
         Object providerIdObj = oAuth2User.getAttribute("sub") != null
                 ? oAuth2User.getAttribute("sub")
@@ -198,7 +209,7 @@ public class SecurityConfig {
 
         String providerId = providerIdObj != null ? providerIdObj.toString() : null;
 
-        if (email == null && "github".equals(provider)) {
+        if ("github".equals(provider) && email == null) {
             String accessToken = userRequest.getAccessToken().getTokenValue();
             email = fetchGitHubEmail(accessToken);
             System.out.println("Email fetched from GitHub: " + email);
@@ -208,34 +219,63 @@ public class SecurityConfig {
             throw new RuntimeException("OAuth authentication failed: No email received.");
         }
 
-        String finalEmail = email;
+        String accessToken = userRequest.getAccessToken().getTokenValue();
+        String profileImageUrl = profileImage == null ? this.profileImageFetcherFactory.fetchProfileImage(provider, accessToken) : profileImage;
 
-        // Create or update OAuth user
-        OAuthUser user = oAuthUserRepository.findByEmail(finalEmail)
+        String finalEmail = email;
+        Role defaultRole = this.roleRepository.findByName("ROLE_USUAL")
+                .orElseThrow(() -> new ResourceNotFoundException("Role", "name", "ROLE_USUAL"));
+        User user = this.userRepository.findByEmail(finalEmail)
                 .orElseGet(() -> {
-                    OAuthUser newUser = OAuthUser.builder()
+                    User newUser = User.builder()
                             .email(finalEmail)
                             .provider(provider)
                             .providerId(providerId)
                             .name(name)
-                            .roles(Set.of(Role.builder().name("ROLE_USER").build())) // Default role
+                            .password("") // Explicitly set empty password for OAuth users
+                            .roles(Set.of(defaultRole)) // Default role
+                            .userCreatedDate(Instant.now())
                             .build();
-                    return oAuthUserRepository.save(newUser);
+                    newUser = this.userRepository.save(newUser);
+
+                    Profile profile = Profile.builder()
+                            .user(newUser)
+                            .imageUrl(profileImageUrl) // Save profile image
+                            .build();
+                    this.profileRepository.save(profile);
+                    return newUser;
                 });
 
-        // Generate JWT Token
-        String jwtToken = jwtUtil.generateToken(email);
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(email);
+        // If user exists, update profile image if changed
+        if (profileImageUrl != null) {
+            Profile profile = this.profileRepository.findByUser_UserId(user.getUserId())
+                    .orElseGet(() -> {
+                        Profile newProfile = Profile.builder()
+                                .user(user)
+                                .imageUrl(profileImageUrl)
+                                .build();
+                        return this.profileRepository.save(newProfile);
+                    });
 
-        //  Return OAuth2User with JWT & Refresh Token
+            // Update image URL if different
+            if (!Objects.equals(profile.getImageUrl(), profileImageUrl)) {
+                profile.setImageUrl(profileImageUrl);
+                this.profileRepository.save(profile);
+            }
+        }
+
+        String jwtToken = jwtUtil.generateToken(user.getEmail());
+        RefreshToken refreshToken = this.refreshTokenService.createRefreshToken(user.getEmail());
+
         Map<String, Object> attributes = new HashMap<>(oAuth2User.getAttributes());
         attributes.put("token", jwtToken);
         attributes.put("refresh_token", refreshToken.getRefreshToken());
 
-        Set<GrantedAuthority> authorities = new HashSet<>();
-        authorities.add(new SimpleGrantedAuthority(user.getRoles().toString()));
+        Set<GrantedAuthority> authorities = user.getRoles().stream()
+                .map(role -> new SimpleGrantedAuthority(role.getName()))
+                .collect(Collectors.toSet());
 
-        // Return appropriate user type
+        // Return OIDC or OAuth2 user with JWT
         if (oAuth2User instanceof OidcUser) {
             return new DefaultOAuth2User(authorities, attributes, "sub");
         } else {
@@ -255,12 +295,11 @@ public class SecurityConfig {
             HttpEntity<String> entity = new HttpEntity<>(headers);
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
 
-            // Parse the response JSON
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode rootNode = objectMapper.readTree(response.getBody());
 
             for (JsonNode emailNode : rootNode) {
-                if (emailNode.get("primary").asBoolean() && emailNode.get("verified").asBoolean()) {
+                if (emailNode.has("email") && emailNode.get("primary").asBoolean() && emailNode.get("verified").asBoolean()) {
                     return emailNode.get("email").asText();
                 }
             }
