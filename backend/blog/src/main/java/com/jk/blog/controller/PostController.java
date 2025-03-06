@@ -56,7 +56,7 @@ public class PostController implements PostApi {
     private String postBucketPath;
 
     @PreAuthorize("hasAuthority('POST_WRITE')")
-    @PostMapping(value = "/", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/createPost", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<APIResponse<PostResponseBody>> createPost(
                                                        @Valid @RequestPart("post") String postRequestBody,
                                                        @RequestPart(value = "image", required = false) MultipartFile image,
@@ -119,16 +119,15 @@ public class PostController implements PostApi {
 
     @PreAuthorize("hasAuthority('POST_WRITE')")
     @PatchMapping("/post/{postId}/visibility")
-    public ResponseEntity<APIResponse<Void>> togglePostVisibility(@PathVariable Long postId, @RequestBody Map<String, Boolean> visibility) {
-        boolean isLive = visibility.getOrDefault("isLive", false);
+    public ResponseEntity<APIResponse<Void>> togglePostVisibility(@PathVariable Long postId, @RequestParam boolean isLive) {
         PostResponseBody postResponseBody = this.postService.togglePostVisibility(postId, isLive);
         return ResponseEntity.ok(new APIResponse<>(true, "isLive updated Successfully"));
     }
 
     @PreAuthorize("hasAuthority('SUBSCRIBER')")
     @PatchMapping("/post/{postId}/member-post")
-    public ResponseEntity<APIResponse<PostResponseBody>> setExistingPostAsMemberPost(@PathVariable Long postId) {
-        PostResponseBody postResponseBody = postService.setAsMemberPost(postId);
+    public ResponseEntity<APIResponse<PostResponseBody>> toggleMemberPostVisibility(@PathVariable Long postId, @RequestParam boolean visible) {
+        PostResponseBody postResponseBody = postService.toggleMemberPostVisibility(postId, visible);
         return ResponseEntity.ok(new APIResponse<>(true, "Post marked as a member post successfully", postResponseBody));
     }
 
