@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Map;
 
 public interface PostApi {
 
@@ -67,12 +66,12 @@ public interface PostApi {
     @ApiResponse(responseCode = "200", description = "Post visibility updated successfully",
             content = @Content(schema = @Schema(implementation = APIResponse.class)))
     ResponseEntity<APIResponse<Void>> togglePostVisibility(
-            @PathVariable Long postId, @RequestParam Map<String, Boolean> visibility);
+            @PathVariable Long postId, @RequestParam boolean isLive);
 
     @Operation(summary = "Set Post as Member Post", description = "Marks an existing post as a member-only post.")
     @ApiResponse(responseCode = "200", description = "Post marked as member post successfully",
             content = @Content(schema = @Schema(implementation = APIResponse.class)))
-    ResponseEntity<APIResponse<PostResponseBody>> setExistingPostAsMemberPost(@PathVariable Long postId);
+    ResponseEntity<APIResponse<PostResponseBody>> toggleMemberPostVisibility(@PathVariable Long postId, @RequestParam boolean visible);
 
     @Operation(summary = "Archive Post", description = "Archives a post so it is no longer publicly visible.")
     @ApiResponse(responseCode = "200", description = "Post archived successfully",
