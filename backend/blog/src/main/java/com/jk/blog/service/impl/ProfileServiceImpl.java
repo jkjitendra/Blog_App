@@ -4,10 +4,10 @@ package com.jk.blog.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jk.blog.dto.AuthDTO.AuthenticatedUserDTO;
 import com.jk.blog.dto.profile.ProfileRequestBody;
 import com.jk.blog.dto.profile.ProfileResponseBody;
 import com.jk.blog.entity.Profile;
-import com.jk.blog.entity.User;
 import com.jk.blog.exception.FieldUpdateNotAllowedException;
 import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.exception.UnAuthorizedException;
@@ -39,6 +39,9 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Autowired
     private ModelMapper modelMapper;
+
+    @Autowired
+    private AuthUtil authUtil;
 
     @Autowired
     @Qualifier("s3FileService")
@@ -122,8 +125,8 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     private void validateProfileOwnership(Long userId, String action) {
-        User authenticatedUser = AuthUtil.getAuthenticatedUser();
-        if (authenticatedUser == null || !authenticatedUser.getUserId().equals(userId)) {
+        AuthenticatedUserDTO authenticatedUser = authUtil.getAuthenticatedUser();
+        if (authenticatedUser == null || !authenticatedUser.getUser().getUserId().equals(userId)) {
             throw new UnAuthorizedException("You are not authorized to %s this profile.", action);
         }
     }

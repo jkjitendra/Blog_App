@@ -1,8 +1,8 @@
 package com.jk.blog.service.impl;
 
+import com.jk.blog.dto.AuthDTO.AuthenticatedUserDTO;
 import com.jk.blog.dto.reaction.ReactionSummaryResponse;
 import com.jk.blog.entity.ReactionModel;
-import com.jk.blog.entity.User;
 import com.jk.blog.exception.ResourceNotFoundException;
 import com.jk.blog.exception.UnAuthorizedException;
 import com.jk.blog.repository.PostRepository;
@@ -25,17 +25,20 @@ public class ReactionServiceImpl implements ReactionService {
     @Autowired
     private PostRepository postRepository;
 
+    @Autowired
+    private AuthUtil authUtil;
+
     public void reactToPost(Long postId, String emoji) {
 
         // Get the authenticated user
-        User user = AuthUtil.getAuthenticatedUser();
+        AuthenticatedUserDTO user = authUtil.getAuthenticatedUser();
         if (user == null) {
-            throw new UnAuthorizedException("User must be logged in to create a post.");
+            throw new UnAuthorizedException("User must be logged in to react on a post.");
         }
 
         validatePostExists(postId);
 
-        ReactionModel existingReaction = this.reactionRepository.findByUserIdAndPostId(user.getUserId(), postId).orElse(null);
+        ReactionModel existingReaction = this.reactionRepository.findByUserIdAndPostId(user.getUser().getUserId(), postId).orElse(null);
 
         if (existingReaction != null) {
             // Update reaction
@@ -45,7 +48,7 @@ public class ReactionServiceImpl implements ReactionService {
             // Create a new reaction
             ReactionModel reaction = new ReactionModel();
             reaction.setPostId(postId);
-            reaction.setUserId(user.getUserId());
+            reaction.setUserId(user.getUser().getUserId());
             reaction.setEmoji(emoji);
             reaction.setType("post");
             this.reactionRepository.save(reaction);
@@ -57,14 +60,14 @@ public class ReactionServiceImpl implements ReactionService {
         validatePostExists(postId);
 
         // Get the authenticated user
-        User user = AuthUtil.getAuthenticatedUser();
+        AuthenticatedUserDTO user = authUtil.getAuthenticatedUser();
         if (user == null) {
-            throw new UnAuthorizedException("User must be logged in to create a post.");
+            throw new UnAuthorizedException("User must be logged in to react on a comment.");
         }
 
         // Check if a reaction already exists in mongodb
         ReactionModel existingReaction = this.reactionRepository
-                                             .findByUserIdAndCommentId(user.getUserId(), commentId)
+                                             .findByUserIdAndCommentId(user.getUser().getUserId(), commentId)
                                              .orElse(null);
 
         if (existingReaction != null) {
@@ -75,7 +78,7 @@ public class ReactionServiceImpl implements ReactionService {
             // Create a new reaction in mongodb
             ReactionModel reaction = new ReactionModel();
             reaction.setCommentId(commentId);
-            reaction.setUserId(user.getUserId());
+            reaction.setUserId(user.getUser().getUserId());
             reaction.setEmoji(emoji);
             reaction.setType("comment");
             this.reactionRepository.save(reaction);
