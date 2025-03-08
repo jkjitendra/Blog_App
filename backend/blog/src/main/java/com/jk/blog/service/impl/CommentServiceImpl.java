@@ -1,5 +1,6 @@
 package com.jk.blog.service.impl;
 
+import com.jk.blog.dto.AuthDTO.AuthenticatedUserDTO;
 import com.jk.blog.dto.comment.CommentRequestBody;
 import com.jk.blog.dto.comment.CommentResponseBody;
 import com.jk.blog.entity.Comment;
@@ -31,24 +32,27 @@ public class CommentServiceImpl implements CommentService {
     private PostRepository postRepository;
     @Autowired
     private ModelMapper modelMapper;
+    @Autowired
+    private AuthUtil authUtil;
 
     @Override
     @Transactional
     public CommentResponseBody createComment(CommentRequestBody commentRequestBody, Long postId) {
 
-        User user = AuthUtil.getAuthenticatedUser();
-        validateAuthenticatedUser(user);
+        AuthenticatedUserDTO user = authUtil.getAuthenticatedUser();
+
+        validateAuthenticatedUser(user != null ? user.getUser() : null);
 
         Post post = fetchPostById(postId);
 
         // 🔹 If the post is a "member-only" post, ensure the user is a subscriber
-        validatePostAccessibility(post, user);
+        validatePostAccessibility(post, user.getUser());
 
         Comment comment = new Comment();
         comment.setCommentDesc(commentRequestBody.getCommentDesc());
-        comment.setUser(user);
+        comment.setUser(user.getUser());
         comment.setPost(post);
-        comment.setMemberComment(determineMemberComment(user));
+        comment.setMemberComment(determineMemberComment(user.getUser()));
 
         comment.setCommentCreatedDate(Instant.now());
 
@@ -126,22 +130,23 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public boolean canDeleteComment(Long userId, Long commentId) {
         Comment comment = fetchCommentById(commentId);
-        User authenticatedUser = AuthUtil.getAuthenticatedUser();
 
-        return isAdmin(authenticatedUser)
-                || isModerator(authenticatedUser, comment.getPost())
-                || isPostOwner(authenticatedUser, comment.getPost())
-                || isCommentOwner(authenticatedUser, comment);
+        AuthenticatedUserDTO authenticatedUser = authUtil.getAuthenticatedUser();
+
+        return authenticatedUser != null && (isAdmin(authenticatedUser.getUser())
+                || isModerator(authenticatedUser.getUser(), comment.getPost())
+                || isPostOwner(authenticatedUser.getUser(), comment.getPost())
+                || isCommentOwner(authenticatedUser.getUser(), comment));
     }
 
     @Override
     public boolean canBulkDelete(Long userId, Long postId) {
         Post post = fetchPostById(postId);
-        User authenticatedUser = AuthUtil.getAuthenticatedUser();
+        AuthenticatedUserDTO authenticatedUser = authUtil.getAuthenticatedUser();
 
-        return isAdmin(authenticatedUser)
-                || isModerator(authenticatedUser, post)
-                || isPostOwner(authenticatedUser, post);
+        return authenticatedUser != null && (isAdmin(authenticatedUser.getUser())
+                || isModerator(authenticatedUser.getUser(), post)
+                || isPostOwner(authenticatedUser.getUser(), post));
     }
 
     @Override
@@ -197,16 +202,16 @@ public class CommentServiceImpl implements CommentService {
     }
 
     private void validateOwnership(Long userId, String action) {
-        User authenticatedUser = AuthUtil.getAuthenticatedUser();
-        if (authenticatedUser == null || !authenticatedUser.getUserId().equals(userId)) {
+        AuthenticatedUserDTO authenticatedUser = authUtil.getAuthenticatedUser();
+        if (authenticatedUser == null || !authenticatedUser.getUser().getUserId().equals(userId)) {
             throw new UnAuthorizedException("You do not have permission to " + action + " this comment.");
         }
     }
 
     private void validateOwnershipOrRoleBasedAccess(Comment comment) {
-        User authenticatedUser = AuthUtil.getAuthenticatedUser();
-        boolean isOwner = authenticatedUser != null && comment.getUser().getUserId().equals(authenticatedUser.getUserId());
-        boolean isAdminOrModerator = isAdmin(authenticatedUser) || isModerator(authenticatedUser, comment.getPost());
+        AuthenticatedUserDTO authenticatedUser = authUtil.getAuthenticatedUser();
+        boolean isOwner = authenticatedUser != null && comment.getUser().getUserId().equals(authenticatedUser.getUser().getUserId());
+        boolean isAdminOrModerator = authenticatedUser != null && (isAdmin(authenticatedUser.getUser()) || isModerator(authenticatedUser.getUser(), comment.getPost()));
 
         if (!isOwner && !isAdminOrModerator) {
             throw new UnAuthorizedException("You do not have permission to delete this comment.");
@@ -214,11 +219,11 @@ public class CommentServiceImpl implements CommentService {
     }
 
     private boolean isAdmin(User user) {
-        return AuthUtil.userHasRole(user, "ROLE_ADMIN");
+        return authUtil.userHasRole(user, "ROLE_ADMIN");
     }
 
     private boolean isModerator(User user, Post post) {
-        return AuthUtil.userHasRole(user, "ROLE_MODERATOR") && post.getUser().getUserId().equals(user.getUserId());
+        return authUtil.userHasRole(user, "ROLE_MODERATOR") && post.getUser().getUserId().equals(user.getUserId());
     }
 
     private boolean isPostOwner(User user, Post post) {
@@ -230,6 +235,6 @@ public class CommentServiceImpl implements CommentService {
     }
 
     private boolean determineMemberComment(User user) {
-        return isAdmin(user) || AuthUtil.userHasRole(user, "ROLE_SUBSCRIBER") || AuthUtil.userHasRole(user, "ROLE_MODERATOR");
+        return isAdmin(user) || authUtil.userHasRole(user, "ROLE_SUBSCRIBER") || authUtil.userHasRole(user, "ROLE_MODERATOR");
     }
 }
