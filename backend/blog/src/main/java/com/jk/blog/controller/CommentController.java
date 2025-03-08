@@ -32,7 +32,7 @@ public class CommentController implements CommentApi {
      * Only authenticated users can create comments.
      */
     @PreAuthorize("isAuthenticated()")
-    @PostMapping("/post/{postId}/comments")
+    @PostMapping("/post/{postId}")
     public ResponseEntity<APIResponse<CommentResponseBody>> createComment(@RequestBody CommentRequestBody commentRequestBody, @PathVariable Long postId) {
         CommentResponseBody commentResponseBody = this.commentService.createComment(commentRequestBody, postId);
         return ResponseEntity.status(HttpStatus.CREATED)
