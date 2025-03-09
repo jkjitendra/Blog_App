@@ -87,7 +87,12 @@ public class PostServiceImpl implements PostService {
 
         handleMediaUpload(post, image, video);
 
-        post.setMemberPost(authenticationFacade.hasAnyRole("ROLE_SUBSCRIBER", "ROLE_MODERATOR", "ROLE_ADMIN"));
+        if (authenticationFacade.hasAnyRole("ROLE_SUBSCRIBER", "ROLE_MODERATOR", "ROLE_ADMIN")) {
+            post.setMemberPost(postRequestBody.getIsMemberPost());
+        } else {
+            post.setMemberPost(false);
+        }
+
         post.setLive(true);
         post.setArchived(false);
         post.setPostCreatedDate(Instant.now());
