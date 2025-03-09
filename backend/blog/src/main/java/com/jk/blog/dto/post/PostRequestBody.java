@@ -26,6 +26,8 @@ public class PostRequestBody {
     @Size(min = 10, message = "content should be greater than 10")
     private String content;
 
+    private Boolean isMemberPost;
+
     private String imageUrl;
 
     private String videoUrl;
