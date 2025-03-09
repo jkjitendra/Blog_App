@@ -14,6 +14,7 @@ import com.jk.blog.repository.RoleRepository;
 import com.jk.blog.repository.UserRepository;
 import com.jk.blog.service.RefreshTokenService;
 import com.jk.blog.utils.JwtUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -35,6 +36,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -117,6 +119,33 @@ public class SecurityConfig {
                               .oidcUserService(oidcUserService()) // Google (OIDC)
                               .userService(oAuth2UserService()) // Facebook, GitHub (OAuth2)
                       )
+//                              .successHandler((request, response, authentication) -> {
+//                                  if (authentication instanceof OAuth2AuthenticationToken oauthToken) {
+//                                      String provider = oauthToken.getAuthorizedClientRegistrationId();
+//
+//                                      response.sendRedirect("/api/v1/oauth/success?provider=" + provider.toUpperCase());
+//                                  }
+//                              })
+                              .successHandler((request, response, authentication) -> {
+                                  if (authentication instanceof OAuth2AuthenticationToken oAuthToken) {
+                                      OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+                                      String email = oAuth2User.getAttribute("email");
+
+                                      if (email == null) {
+                                          response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "OAuth authentication failed: No email received.");
+                                          return;
+                                      }
+
+                                      User user = userRepository.findByEmail(email)
+                                              .orElseThrow(() -> new RuntimeException("User not found in the system"));
+
+                                      String jwtToken = jwtUtil.generateToken(user.getEmail());
+
+                                      response.setContentType("application/json");
+                                      response.getWriter().write("{\"token\":\"" + jwtToken + "\"}");
+                                      response.getWriter().flush();
+                                  }
+                              })
 //                      .successHandler((request, response, authentication) -> {
 //                          response.setContentType("application/json");
 //                          response.setCharacterEncoding("UTF-8");
@@ -200,12 +229,12 @@ public class SecurityConfig {
     private OAuth2User processOAuthUser(org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest userRequest, OAuth2User oAuth2User, String provider) {
         String email = oAuth2User.getAttribute("email");
         String name = oAuth2User.getAttribute("name");
-        String profileImage = "github".equals(provider) ? oAuth2User.getAttribute("avatar_url") : oAuth2User.getAttribute("photos") ;
+        String profileImage = "github".equals(provider) ? oAuth2User.getAttribute("avatar_url") : oAuth2User.getAttribute("picture") ;
 
 
         Object providerIdObj = oAuth2User.getAttribute("sub") != null
-                ? oAuth2User.getAttribute("sub")
-                : oAuth2User.getAttribute("id");
+                ? oAuth2User.getAttribute("sub") // Google provides "sub"
+                : oAuth2User.getAttribute("id"); // Other providers use "id"
 
         String providerId = providerIdObj != null ? providerIdObj.toString() : null;
 
@@ -268,6 +297,7 @@ public class SecurityConfig {
         RefreshToken refreshToken = this.refreshTokenService.createRefreshToken(user.getEmail());
 
         Map<String, Object> attributes = new HashMap<>(oAuth2User.getAttributes());
+        attributes.put("provider", provider);
         attributes.put("token", jwtToken);
         attributes.put("refresh_token", refreshToken.getRefreshToken());
 
@@ -275,12 +305,9 @@ public class SecurityConfig {
                 .map(role -> new SimpleGrantedAuthority(role.getName()))
                 .collect(Collectors.toSet());
 
-        // Return OIDC or OAuth2 user with JWT
-        if (oAuth2User instanceof OidcUser) {
-            return new DefaultOAuth2User(authorities, attributes, "sub");
-        } else {
-            return new DefaultOAuth2User(authorities, attributes, "id");
-        }
+        String nameAttributeKey = "google".equalsIgnoreCase(provider) ? "sub" : "id";
+
+        return new DefaultOAuth2User(authorities, attributes, nameAttributeKey);
     }
 
     private String fetchGitHubEmail(String accessToken) {
