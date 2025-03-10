@@ -72,7 +72,7 @@ class UserServiceImplTest {
 
     private static final Long TEST_USER_ID = 1L;
     private static final String TEST_EMAIL = "test@example.com";
-    private static final String TEST_USERNAME = "test";
+    private static final String TEST_USERNAME = "test@example.com";
 
     @BeforeEach
     void setUp() {
