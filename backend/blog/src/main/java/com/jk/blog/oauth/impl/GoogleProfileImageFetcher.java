@@ -1,11 +1,14 @@
 package com.jk.blog.oauth.impl;
 
-import com.jk.blog.oauth.OAuthProfileImageFetcher;
-import org.springframework.http.*;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jk.blog.oauth.OAuthProfileImageFetcher;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 @Service("googleProfileImageFetcher")
 public class GoogleProfileImageFetcher implements OAuthProfileImageFetcher {
@@ -27,10 +30,17 @@ public class GoogleProfileImageFetcher implements OAuthProfileImageFetcher {
             JsonNode rootNode = objectMapper.readTree(response.getBody());
 
             System.out.println("Fetched image from Google");
-            return rootNode.get("photos").get(0).get("url").asText();
+
+            if (rootNode.has("photos") && rootNode.get("photos").isArray() && rootNode.get("photos").size() > 0) {
+                System.out.println("PictureUrl inside if:- " + rootNode.get("photos").get(0).get("url").asText());
+                return rootNode.get("photos").get(0).get("url").asText();
+            }
+            String pictureUrl =  rootNode.get("photos").get(0).get("url").asText();
+            System.out.println("PictureUrl outside if:- " + pictureUrl);
+            return pictureUrl;
         } catch (Exception e) {
             System.out.println("Failed to fetch Google profile image: " + e.getMessage());
         }
-        return null;
+        return "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
     }
 }
