@@ -93,7 +93,7 @@ class PostControllerTest {
     @Test
     void test_togglePostVisibility_WhenVisibilityUpdated_returnSuccess() {
         when(postService.togglePostVisibility(1L, true)).thenReturn(postResponseBody);
-        Map<String, Boolean> visibility = Map.of("isLive", true);
+        boolean visibility = true;
 
         ResponseEntity<APIResponse<Void>> response = postController.togglePostVisibility(1L, visibility);
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -127,9 +127,9 @@ class PostControllerTest {
 
     @Test
     void test_setExistingPostAsMemberPost_WhenValidRequest_returnSuccess() {
-        when(postService.setAsMemberPost(1L)).thenReturn(postResponseBody);
+        when(postService.toggleMemberPostVisibility(1L, true)).thenReturn(postResponseBody);
 
-        ResponseEntity<APIResponse<PostResponseBody>> response = postController.setExistingPostAsMemberPost(1L);
+        ResponseEntity<APIResponse<PostResponseBody>> response = postController.toggleMemberPostVisibility(1L,true);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue(response.getBody().getSuccess());
         assertEquals("Post marked as a member post successfully", response.getBody().getMessage());
