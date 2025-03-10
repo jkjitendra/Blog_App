@@ -43,6 +43,21 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
+        String requestURI = request.getRequestURI();
+
+        // ✅ Allow OAuth2 routes without JWT validation
+        if (requestURI.contains("/api/v1/oauth")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+//        // Allow OAuth2 authenticated users
+//        if (authentication instanceof OAuth2AuthenticationToken) {
+//            filterChain.doFilter(request, response);
+//            return;
+//        }
+
         final String authorizationHeader = request.getHeader("Authorization");
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
