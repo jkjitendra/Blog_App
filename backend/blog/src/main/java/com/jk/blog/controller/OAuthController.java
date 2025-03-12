@@ -1,5 +1,6 @@
 package com.jk.blog.controller;
 
+import com.jk.blog.dto.user.UserOAuthDTO;
 import com.jk.blog.entity.User;
 import com.jk.blog.repository.UserRepository;
 import com.jk.blog.utils.JwtUtil;
@@ -9,12 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -34,6 +31,38 @@ public class OAuthController {
     }
 
     @GetMapping("/user")
+    public ResponseEntity<?> getAuthenticatedUser(@CookieValue(value = "accessToken", required = false) String accessToken) {
+        System.out.println("access Token" + accessToken);
+        if (accessToken == null || accessToken.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Session expired. Please log in again."));
+        }
+
+        try {
+            String email = jwtUtil.extractUsername(accessToken);
+            Optional<User> existingUser = userRepository.findByEmail(email);
+
+            if (existingUser.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "User not found in the system."));
+            }
+
+            User user = existingUser.get();
+
+            UserOAuthDTO oAuthDTO = UserOAuthDTO.builder()
+                    .email(user.getEmail())
+                    .name(user.getName())
+                    .provider(user.getProvider())
+                    .build();
+
+            return ResponseEntity.ok(oAuthDTO);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Invalid token. Please log in again.");
+        }
+    }
+
+    @GetMapping("/users")
     public ResponseEntity<?> getAuthenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -61,15 +90,13 @@ public class OAuthController {
         }
 
         User user = existingUser.get();
-        String token = jwtUtil.generateToken(user.getEmail());
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("email", user.getEmail());
-        response.put("name", user.getName());
-        response.put("provider", user.getProvider());
-        response.put("roles", user.getRoles());
-        response.put("token", token);
+        UserOAuthDTO oAuthDTO = UserOAuthDTO.builder()
+                .email(user.getEmail())
+                .name(user.getName())
+                .provider(user.getProvider())
+                .build();
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(oAuthDTO);
     }
 }
