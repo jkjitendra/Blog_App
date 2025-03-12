@@ -491,14 +491,6 @@ public class PostServiceImpl implements PostService {
                 .collect(Collectors.toSet());
     }
 
-//    private void validateModificationAuthorization(Post post, String action) {
-//        User authenticatedUser = authUtil.getAuthenticatedUser();
-//        boolean isAdminOrModerator = authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR");
-//
-//        if (authenticatedUser == null || (!post.getUser().getUserId().equals(authenticatedUser.getUserId()) && !isAdminOrModerator)) {
-//            throw new UnAuthorizedException("You do not have permission to %s this post.", action);
-//        }
-//    }
     private void validateModificationAuthorization(Post post, AuthenticatedUserDTO authUser, String action) {
         boolean isAdminOrModerator = authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR");
 
