@@ -111,61 +111,61 @@ public class SecurityConfig {
                               .requestMatchers(SecurityConstants.PUBLIC_ENDPOINTS).permitAll()
                               .anyRequest().authenticated()
               )
-              .headers(headers -> headers
-                      .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
-              )
+//              .headers(headers -> headers
+//                      .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
+//              )
               .oauth2Login(oauth2 -> oauth2
                       .userInfoEndpoint(userInfo -> userInfo
                               .oidcUserService(oidcUserService()) // Google (OIDC)
                               .userService(oAuth2UserService()) // Facebook, GitHub (OAuth2)
                       )
-//                              .successHandler((request, response, authentication) -> {
-//                                  if (authentication instanceof OAuth2AuthenticationToken oauthToken) {
-//                                      String provider = oauthToken.getAuthorizedClientRegistrationId();
-//
-//                                      response.sendRedirect("/api/v1/oauth/success?provider=" + provider.toUpperCase());
-//                                  }
-//                              })
-                              .successHandler((request, response, authentication) -> {
-                                  if (authentication instanceof OAuth2AuthenticationToken oAuthToken) {
-                                      OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
-                                      String email = oAuth2User.getAttribute("email");
-
-                                      if (email == null) {
-                                          response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "OAuth authentication failed: No email received.");
-                                          return;
-                                      }
-
-                                      User user = userRepository.findByEmail(email)
-                                              .orElseThrow(() -> new RuntimeException("User not found in the system"));
-
-                                      String jwtToken = jwtUtil.generateToken(user.getEmail());
-
-                                      response.setContentType("application/json");
-                                      response.getWriter().write("{\"token\":\"" + jwtToken + "\"}");
-                                      response.getWriter().flush();
-                                  }
-                              })
 //                      .successHandler((request, response, authentication) -> {
-//                          response.setContentType("application/json");
-//                          response.setCharacterEncoding("UTF-8");
+//                          if (authentication instanceof OAuth2AuthenticationToken oauthToken) {
+//                              String provider = oauthToken.getAuthorizedClientRegistrationId();
 //
-//                          OAuth2User user = (OAuth2User) authentication.getPrincipal();
-//                          String token = user.getAttribute("token");
-//                          String refreshToken = user.getAttribute("refresh_token");
-//
-//                          ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", refreshToken)
-//                                  .httpOnly(true)
-//                                  .secure(isCookieSecure) // Set to false for local testing
-//                                  .path("/")
-//                                  .maxAge(refreshExpirationTime/1000) // 7 days
-//                                  .sameSite("Strict")
-//                                  .build();
-//                          response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
-//
-//                          response.getWriter().write("{\"token\":\"" + token + "\"}");
-//                          response.getWriter().flush();
+//                              response.sendRedirect("/api/v1/oauth/success?provider=" + provider.toUpperCase());
+//                          }
 //                      })
+                      .successHandler((request, response, authentication) -> {
+                          if (authentication instanceof OAuth2AuthenticationToken oAuthToken) {
+                              OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+
+                              String jwtToken = oAuth2User.getAttribute("token");
+                              String refreshToken = oAuth2User.getAttribute("refresh_token");
+
+                              ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", jwtToken)
+                                      .httpOnly(true)
+                                      .secure(isCookieSecure)  // ✅ Set to false for local testing
+                                      .path("/")
+                                      .maxAge(refreshExpirationTime / 1000)  // ✅ Set expiry (e.g., 7 days)
+//                                      .sameSite("Strict")
+                                      .build();
+
+                              ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", refreshToken)
+                                  .httpOnly(true)
+                                  .secure(isCookieSecure) // Set to false for local testing
+                                  .path("/")
+                                  .maxAge(refreshExpirationTime/1000) // 7 days
+//                                      .sameSite("")
+//                                  .sameSite("Strict")
+                                  .build();
+
+                              response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
+                              response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+
+//                              response.setContentType("application/json");
+//                              response.setCharacterEncoding("UTF-8");
+//                              response.setStatus(HttpServletResponse.SC_OK);
+
+//                              String jsonResponse = String.format(
+//                                      "{\"token\":\"%s\", \"refreshToken\":\"%s\"}", jwtToken, refreshToken
+//                              );
+//                              response.getWriter().write(jsonResponse);
+//                              response.getWriter().flush();
+//                              String redirectUrl = "http://localhost:5500/index.html?token=" + jwtToken + "&refreshToken=" + refreshToken;
+                              response.sendRedirect("http://localhost:5500/index.html");
+                          }
+                      })
               )
               .csrf(csrf -> csrf.ignoringRequestMatchers(toH2Console()).disable())
               .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -297,6 +297,7 @@ public class SecurityConfig {
         RefreshToken refreshToken = this.refreshTokenService.createRefreshToken(user.getEmail());
 
         Map<String, Object> attributes = new HashMap<>(oAuth2User.getAttributes());
+        attributes.put("email", email);
         attributes.put("provider", provider);
         attributes.put("token", jwtToken);
         attributes.put("refresh_token", refreshToken.getRefreshToken());
