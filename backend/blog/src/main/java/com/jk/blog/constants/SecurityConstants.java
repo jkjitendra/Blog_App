@@ -6,6 +6,8 @@ public class SecurityConstants {
     public static final String[] PUBLIC_ENDPOINTS = {
             "/api/v1/auth/**",
             "/api/v1/oauth/success",
+            "/oauth2/**",
+            "/login/**",
             "/api/v1/oauth/user",
             "/h2-console/**",
             "/swagger-ui/**",  // Swagger UI HTML
