@@ -1,5 +1,6 @@
 package com.jk.blog.service;
 
+import com.jk.blog.dto.AuthDTO.AuthenticatedUserDTO;
 import com.jk.blog.dto.profile.ProfileRequestBody;
 import com.jk.blog.dto.profile.ProfileResponseBody;
 import com.jk.blog.entity.Profile;
@@ -15,7 +16,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 import org.springframework.web.multipart.MultipartFile;
@@ -48,8 +48,12 @@ class ProfileServiceImplTest {
     @Mock
     private FileService fileService;
 
+    @Mock
+    private AuthUtil authUtil;
+
     private User testUser;
     private Profile testProfile;
+    private AuthenticatedUserDTO authenticatedUserDTO;
 
     private static final Long TEST_USER_ID = 1L;
     private static final Long TEST_PROFILE_ID = 100L;
@@ -62,6 +66,12 @@ class ProfileServiceImplTest {
         testProfile = new Profile();
         testProfile.setProfileId(TEST_PROFILE_ID);
         testProfile.setUser(testUser);
+
+        authenticatedUserDTO = new AuthenticatedUserDTO();
+        authenticatedUserDTO.setOAuthUser(true);
+        authenticatedUserDTO.setProvider("Github");
+        authenticatedUserDTO.setEmail("testuser@github.com");
+        authenticatedUserDTO.setUser(testUser);
     }
 
     /** GET PROFILE TESTS **/
@@ -93,19 +103,18 @@ class ProfileServiceImplTest {
         requestBody.setImageUrl("mockedImageUrl");
         requestBody.setSocialMediaLinks(List.of("www.github.com/user1", "www.linkedin.com/in/user1"));
 
-        try (MockedStatic<AuthUtil> mockedAuthUtil = mockStatic(AuthUtil.class)) {
-            mockedAuthUtil.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
-            when(fileService.uploadImage(anyString(), any())).thenReturn("mockedImageUrl");
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
+        when(fileService.uploadImage(anyString(), any())).thenReturn("mockedImageUrl");
 
-            when(profileRepository.findByUser_UserId(TEST_USER_ID)).thenReturn(Optional.of(testProfile));
-            when(profileRepository.save(any(Profile.class))).thenReturn(testProfile);
-            when(modelMapper.map(testProfile, ProfileResponseBody.class)).thenReturn(new ProfileResponseBody());
+        when(profileRepository.findByUser_UserId(TEST_USER_ID)).thenReturn(Optional.of(testProfile));
+        when(profileRepository.save(any(Profile.class))).thenReturn(testProfile);
+        when(modelMapper.map(testProfile, ProfileResponseBody.class)).thenReturn(new ProfileResponseBody());
 
-            ProfileResponseBody response = profileService.updateProfile(requestBody, TEST_USER_ID, mockImage);
+        ProfileResponseBody response = profileService.updateProfile(requestBody, TEST_USER_ID, mockImage);
 
-            assertNotNull(response);
-            verify(profileRepository, times(1)).save(any(Profile.class));
-        }
+        assertNotNull(response);
+        verify(profileRepository, times(1)).save(any(Profile.class));
+
     }
 
     @Test
@@ -117,18 +126,17 @@ class ProfileServiceImplTest {
         requestBody.setSocialMediaLinks(null);
 
 
-        try (MockedStatic<AuthUtil> mockedAuthUtil = mockStatic(AuthUtil.class)) {
-            mockedAuthUtil.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            when(profileRepository.findByUser_UserId(TEST_USER_ID)).thenReturn(Optional.of(testProfile));
-            when(profileRepository.save(any(Profile.class))).thenReturn(testProfile);
-            when(modelMapper.map(testProfile, ProfileResponseBody.class)).thenReturn(new ProfileResponseBody());
+        when(profileRepository.findByUser_UserId(TEST_USER_ID)).thenReturn(Optional.of(testProfile));
+        when(profileRepository.save(any(Profile.class))).thenReturn(testProfile);
+        when(modelMapper.map(testProfile, ProfileResponseBody.class)).thenReturn(new ProfileResponseBody());
 
-            ProfileResponseBody response = profileService.updateProfile(requestBody, TEST_USER_ID, null);
+        ProfileResponseBody response = profileService.updateProfile(requestBody, TEST_USER_ID, null);
 
-            assertNotNull(response);
-            verify(profileRepository, times(1)).save(any(Profile.class));
-        }
+        assertNotNull(response);
+        verify(profileRepository, times(1)).save(any(Profile.class));
+
     }
 
     @Test
@@ -136,13 +144,13 @@ class ProfileServiceImplTest {
         ProfileRequestBody requestBody = new ProfileRequestBody();
         requestBody.setAddress("New Address");
 
-        try (MockedStatic<AuthUtil> mockedAuthUtil = mockStatic(AuthUtil.class)) {
-            User differentUser = new User();
-            differentUser.setUserId(2L);  // Different user ID
-            mockedAuthUtil.when(AuthUtil::getAuthenticatedUser).thenReturn(differentUser);
+        User differentUser = new User();
+        differentUser.setUserId(2L);  // Different user ID
+        authenticatedUserDTO.setUser(differentUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            assertThrows(UnAuthorizedException.class, () -> profileService.updateProfile(requestBody, TEST_USER_ID, mockImage));
-        }
+        assertThrows(UnAuthorizedException.class, () -> profileService.updateProfile(requestBody, TEST_USER_ID, mockImage));
+
     }
 
     @Test
@@ -150,13 +158,12 @@ class ProfileServiceImplTest {
         ProfileRequestBody requestBody = new ProfileRequestBody();
         requestBody.setAddress("New Address");
 
-        try (MockedStatic<AuthUtil> mockedAuthUtil = mockStatic(AuthUtil.class)) {
-            mockedAuthUtil.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            when(profileRepository.findByUser_UserId(TEST_USER_ID)).thenReturn(Optional.empty());
+        when(profileRepository.findByUser_UserId(TEST_USER_ID)).thenReturn(Optional.empty());
 
-            assertThrows(ResourceNotFoundException.class, () -> profileService.updateProfile(requestBody, TEST_USER_ID, mockImage));
-        }
+        assertThrows(ResourceNotFoundException.class, () -> profileService.updateProfile(requestBody, TEST_USER_ID, mockImage));
+
     }
 
     /** PATCH PROFILE TESTS **/
@@ -169,37 +176,35 @@ class ProfileServiceImplTest {
         updates.put("socialMediaLinks", List.of("www.github.com/user1", "www.linkedin.com/in/user1"));
 
 
-        try (MockedStatic<AuthUtil> mockedAuthUtil = mockStatic(AuthUtil.class)) {
-            mockedAuthUtil.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
-            when(fileService.uploadImage(anyString(), any())).thenReturn("mockedImageUrl");
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
+        when(fileService.uploadImage(anyString(), any())).thenReturn("mockedImageUrl");
 
-            when(profileRepository.findByUser_UserId(TEST_USER_ID)).thenReturn(Optional.of(testProfile));
-            when(profileRepository.save(any(Profile.class))).thenReturn(testProfile);
-            when(modelMapper.map(testProfile, ProfileResponseBody.class)).thenReturn(new ProfileResponseBody());
+        when(profileRepository.findByUser_UserId(TEST_USER_ID)).thenReturn(Optional.of(testProfile));
+        when(profileRepository.save(any(Profile.class))).thenReturn(testProfile);
+        when(modelMapper.map(testProfile, ProfileResponseBody.class)).thenReturn(new ProfileResponseBody());
 
-            ProfileResponseBody response = profileService.patchProfile(updates, TEST_USER_ID, mockImage);
+        ProfileResponseBody response = profileService.patchProfile(updates, TEST_USER_ID, mockImage);
 
-            assertNotNull(response);
-            verify(profileRepository, times(1)).save(any(Profile.class));
-        }
+        assertNotNull(response);
+        verify(profileRepository, times(1)).save(any(Profile.class));
+
     }
 
     @Test
     void test_patchProfile_WhenUserIsAuthorizedAndRequestBodyIsNull_ReturnPatchedProfile() throws IOException {
         Map<String, Object> updates = new HashMap<>();
 
-        try (MockedStatic<AuthUtil> mockedAuthUtil = mockStatic(AuthUtil.class)) {
-            mockedAuthUtil.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            when(profileRepository.findByUser_UserId(TEST_USER_ID)).thenReturn(Optional.of(testProfile));
-            when(profileRepository.save(any(Profile.class))).thenReturn(testProfile);
-            when(modelMapper.map(testProfile, ProfileResponseBody.class)).thenReturn(new ProfileResponseBody());
+        when(profileRepository.findByUser_UserId(TEST_USER_ID)).thenReturn(Optional.of(testProfile));
+        when(profileRepository.save(any(Profile.class))).thenReturn(testProfile);
+        when(modelMapper.map(testProfile, ProfileResponseBody.class)).thenReturn(new ProfileResponseBody());
 
-            ProfileResponseBody response = profileService.patchProfile(updates, TEST_USER_ID, null);
+        ProfileResponseBody response = profileService.patchProfile(updates, TEST_USER_ID, null);
 
-            assertNotNull(response);
-            verify(profileRepository, times(1)).save(any(Profile.class));
-        }
+        assertNotNull(response);
+        verify(profileRepository, times(1)).save(any(Profile.class));
+
     }
 
 
@@ -207,63 +212,60 @@ class ProfileServiceImplTest {
     void test_patchProfile_WhenUserNotAuthorized_ThrowUnAuthorizedException() {
         Map<String, Object> updates = Map.of("about", "Updated About");
 
-        try (MockedStatic<AuthUtil> mockedAuthUtil = mockStatic(AuthUtil.class)) {
-            User differentUser = new User();
-            differentUser.setUserId(2L);
-            mockedAuthUtil.when(AuthUtil::getAuthenticatedUser).thenReturn(differentUser);
+        User differentUser = new User();
+        differentUser.setUserId(2L);
+        authenticatedUserDTO.setUser(differentUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            assertThrows(UnAuthorizedException.class, () -> profileService.patchProfile(updates, TEST_USER_ID, mockImage));
-        }
+        assertThrows(UnAuthorizedException.class, () -> profileService.patchProfile(updates, TEST_USER_ID, mockImage));
+
     }
 
     @Test
     void test_patchProfile_WhenTryingToUpdateRestrictedFields_ThrowFieldUpdateNotAllowedException() {
         Map<String, Object> updates = Map.of("profileId", 200L);
 
-        try (MockedStatic<AuthUtil> mockedAuthUtil = mockStatic(AuthUtil.class)) {
-            mockedAuthUtil.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            when(profileRepository.findByUser_UserId(TEST_USER_ID)).thenReturn(Optional.of(testProfile));
+        when(profileRepository.findByUser_UserId(TEST_USER_ID)).thenReturn(Optional.of(testProfile));
 
-            assertThrows(FieldUpdateNotAllowedException.class, () -> profileService.patchProfile(updates, TEST_USER_ID, mockImage));
-        }
+        assertThrows(FieldUpdateNotAllowedException.class, () -> profileService.patchProfile(updates, TEST_USER_ID, mockImage));
+
     }
 
     /** DELETE PROFILE TESTS **/
 
     @Test
     void test_deleteProfile_WhenUserIsAuthorized_DeleteProfile() {
-        try (MockedStatic<AuthUtil> mockedAuthUtil = mockStatic(AuthUtil.class)) {
-            mockedAuthUtil.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            when(profileRepository.findByUser_UserId(TEST_USER_ID)).thenReturn(Optional.of(testProfile));
-            doNothing().when(profileRepository).delete(testProfile);
+        when(profileRepository.findByUser_UserId(TEST_USER_ID)).thenReturn(Optional.of(testProfile));
+        doNothing().when(profileRepository).delete(testProfile);
 
-            profileService.deleteProfile(TEST_USER_ID);
+        profileService.deleteProfile(TEST_USER_ID);
 
-            verify(profileRepository, times(1)).delete(testProfile);
-        }
+        verify(profileRepository, times(1)).delete(testProfile);
+
     }
 
     @Test
     void test_deleteProfile_WhenUserNotAuthorized_ThrowUnAuthorizedException() {
-        try (MockedStatic<AuthUtil> mockedAuthUtil = mockStatic(AuthUtil.class)) {
-            User differentUser = new User();
-            differentUser.setUserId(2L);
-            mockedAuthUtil.when(AuthUtil::getAuthenticatedUser).thenReturn(differentUser);
 
-            assertThrows(UnAuthorizedException.class, () -> profileService.deleteProfile(TEST_USER_ID));
-        }
+        User differentUser = new User();
+        differentUser.setUserId(2L);
+        authenticatedUserDTO.setUser(differentUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
+
+        assertThrows(UnAuthorizedException.class, () -> profileService.deleteProfile(TEST_USER_ID));
+
     }
 
     @Test
     void test_deleteProfile_WhenProfileNotFound_ThrowResourceNotFoundException() {
-        try (MockedStatic<AuthUtil> mockedAuthUtil = mockStatic(AuthUtil.class)) {
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
+        when(profileRepository.findByUser_UserId(TEST_USER_ID)).thenReturn(Optional.empty());
 
-            mockedAuthUtil.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
-            when(profileRepository.findByUser_UserId(TEST_USER_ID)).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFoundException.class, () -> profileService.deleteProfile(TEST_USER_ID));
 
-            assertThrows(ResourceNotFoundException.class, () -> profileService.deleteProfile(TEST_USER_ID));
-        }
     }
 }
