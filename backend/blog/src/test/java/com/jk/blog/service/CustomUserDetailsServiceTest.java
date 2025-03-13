@@ -31,9 +31,9 @@ public class CustomUserDetailsServiceTest {
     @BeforeEach
     void setUp() {
         user = new User();
-        user.setUserName("johndoe");
         user.setEmail("johndoe@example.com");
         user.setPassword("encodedPassword");
+        user.setProvider("local");
     }
 
     /**
@@ -41,35 +41,31 @@ public class CustomUserDetailsServiceTest {
      */
     @Test
     void test_loadUserByUsername_ShouldReturnUserDetails_WhenEmailExists() {
-        when(userRepository.findByEmail("johndoe@example.com")).thenReturn(Optional.of(user));
-
-        UserDetails userDetails = customUserDetailsService.loadUserByUsername("johndoe@example.com");
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.ofNullable(user));
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(user.getEmail());
 
         assertNotNull(userDetails);
-        assertEquals("johndoe@example.com", userDetails.getUsername());
+        assertFalse(userDetails.getPassword().isEmpty(), "Password should not be empty!");
         assertEquals("encodedPassword", userDetails.getPassword());
         verify(userRepository, times(1)).findByEmail("johndoe@example.com");
     }
 
-    /**
-     * Test case: Successfully load user by username
-     */
     @Test
-    void test_loadUserByUsername_ShouldReturnUserDetails_WhenUsernameExists() {
-        when(userRepository.findByEmail("johndoe")).thenReturn(Optional.empty());
-        when(userRepository.findByUserName("johndoe")).thenReturn(Optional.of(user));
+    void test_loadUserByUsername_ShouldReturnEmptyPassword_WhenEmailExistsAndProviderIsNotLocal() {
+        user.setProvider("github");
 
-        UserDetails userDetails = customUserDetailsService.loadUserByUsername("johndoe");
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.ofNullable(user));
+
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(user.getEmail());
 
         assertNotNull(userDetails);
-        assertEquals("johndoe@example.com", userDetails.getUsername());
-        assertEquals("encodedPassword", userDetails.getPassword());
-        verify(userRepository, times(1)).findByEmail("johndoe");
-        verify(userRepository, times(1)).findByUserName("johndoe");
+        assertTrue(userDetails.getPassword().isEmpty(), "Password should be empty!");
+        assertNotEquals("encodedPassword", userDetails.getPassword());
+        verify(userRepository, times(1)).findByEmail("johndoe@example.com");
     }
 
     /**
-     * Test case: Throw ResourceNotFoundException when user not found by email or username
+     * Test case: Throw ResourceNotFoundException when user not found by email
      */
     @Test
     void test_loadUserByUsername_ShouldThrowResourceNotFoundException_WhenUserNotFound() {
@@ -78,7 +74,6 @@ public class CustomUserDetailsServiceTest {
         assertThrows(ResourceNotFoundException.class, () -> customUserDetailsService.loadUserByUsername("unknown@example.com"));
 
         verify(userRepository, times(1)).findByEmail("unknown@example.com");
-        verify(userRepository, times(1)).findByUserName("unknown@example.com");
     }
 
 }
