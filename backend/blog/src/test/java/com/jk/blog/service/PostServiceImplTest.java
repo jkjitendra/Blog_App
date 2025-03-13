@@ -1,5 +1,6 @@
 package com.jk.blog.service;
 
+import com.jk.blog.dto.AuthDTO.AuthenticatedUserDTO;
 import com.jk.blog.dto.PageableResponse;
 import com.jk.blog.dto.comment.CommentResponseBody;
 import com.jk.blog.dto.post.PostRequestBody;
@@ -18,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -63,6 +63,9 @@ class PostServiceImplTest {
 
     @Mock
     private FileService fileService;
+    
+    @Mock
+    private AuthUtil authUtil;
 
     @Mock
     private MultipartFile image;
@@ -75,12 +78,14 @@ class PostServiceImplTest {
     private PostRequestBody postRequestBody;
     private Category testCategory;
     private Set<Tag> testTags;
+    private AuthenticatedUserDTO authenticatedUserDTO;
 
     @BeforeEach
     void setUp() {
         testUser = new User();
         testUser.setUserId(1L);
         testUser.setUserName("testUser");
+        testUser.setEmail("testuser@github.com");
 
         testCategory = new Category();
         testCategory.setCategoryId(1L);
@@ -98,6 +103,7 @@ class PostServiceImplTest {
         testPost.setTags(testTags);
         testPost.setLive(true);
         testPost.setArchived(false);
+        testPost.setMemberPost(true);
         testPost.setPostCreatedDate(Instant.now());
 
         postRequestBody = new PostRequestBody();
@@ -105,6 +111,14 @@ class PostServiceImplTest {
         postRequestBody.setContent("New Post Content");
         postRequestBody.setCategoryId(1L);
         postRequestBody.setTagNames(Set.of("Java"));
+        postRequestBody.setIsMemberPost(true);
+
+        authenticatedUserDTO = new AuthenticatedUserDTO();
+        authenticatedUserDTO.setOAuthUser(true);
+        authenticatedUserDTO.setProvider("Github");
+        authenticatedUserDTO.setEmail("testuser@github.com");
+        authenticatedUserDTO.setRoles(Set.of("ROLE_SUBSCRIBER"));
+        authenticatedUserDTO.setUser(testUser);
 
     }
 
@@ -116,29 +130,28 @@ class PostServiceImplTest {
         when(fileService.uploadImage(anyString(), any(MultipartFile.class))).thenReturn("test-image.jpg");
         when(fileService.uploadVideo(anyString(), any(MultipartFile.class))).thenReturn("test-video.mp4");
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            PostResponseBody response = postService.createPost(postRequestBody, image, video);
-            assertNotNull(response);
-            assertEquals("Test Post", response.getTitle());
-            verify(postRepository, times(1)).save(any(Post.class));
-        }
+        PostResponseBody response = postService.createPost(postRequestBody, image, video);
+        assertNotNull(response);
+        assertEquals("Test Post", response.getTitle());
+        verify(postRepository, times(1)).save(any(Post.class));
+
     }
 
     @Test
     void test_createPost_WhenAuthenticatedUserIsNull_ShouldThrowUnAuthorizedException() {
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(null);
+        when(authUtil.getAuthenticatedUser()).thenReturn(null);
 
-            assertThrows(UnAuthorizedException.class, () -> postService.createPost(postRequestBody, image, video));
-            verify(postRepository, never()).save(any(Post.class));
-        }
+        assertThrows(UnAuthorizedException.class, () -> postService.createPost(postRequestBody, image, video));
+        verify(postRepository, never()).save(any(Post.class));
+
     }
 
     @Test
     void test_getPostById_WhenPostExists_ReturnPostResponseBody() {
+        testPost.setMemberPost(false);
         when(postRepository.findByPostIdAndIsLiveTrueAndIsPostDeletedFalse(anyLong()))
                 .thenReturn(Optional.of(testPost));
 
@@ -225,47 +238,44 @@ class PostServiceImplTest {
         when(categoryRepository.findById(anyLong())).thenReturn(Optional.ofNullable(testCategory));
         when(tagRepository.findByTagName(anyString())).thenReturn(testTags.stream().findFirst());
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
-            PostRequestBody postRequestBody = new PostRequestBody();
-            postRequestBody.setTitle("Updated Title");
-            postRequestBody.setCategoryId(1L);
-            postRequestBody.setTagNames(Collections.singleton("Java"));
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
+        PostRequestBody postRequestBody = new PostRequestBody();
+        postRequestBody.setTitle("Updated Title");
+        postRequestBody.setCategoryId(1L);
+        postRequestBody.setTagNames(Collections.singleton("Java"));
 
-            PostResponseBody response = postService.updatePost(1L, postRequestBody, image, video);
+        PostResponseBody response = postService.updatePost(1L, postRequestBody, image, video);
 
-            assertNotNull(response);
-            assertEquals("Updated Title", response.getTitle());
-            verify(postRepository, times(1)).save(any(Post.class));
-        }
+        assertNotNull(response);
+        assertEquals("Updated Title", response.getTitle());
+        verify(postRepository, times(1)).save(any(Post.class));
+
     }
 
     @Test
     void test_updatePost_WhenNotAuthorized_ShouldThrowUnAuthorizedException() {
         when(postRepository.findActiveAndUnarchivedPostsById(anyLong())).thenReturn(Optional.of(testPost));
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(null);
+        when(authUtil.getAuthenticatedUser()).thenReturn(null);
 
-            PostRequestBody postRequestBody = new PostRequestBody();
-            postRequestBody.setTitle("Updated Title");
+        PostRequestBody postRequestBody = new PostRequestBody();
+        postRequestBody.setTitle("Updated Title");
 
-            assertThrows(UnAuthorizedException.class, () -> postService.updatePost(1L, postRequestBody, image, video));
-        }
+        assertThrows(UnAuthorizedException.class, () -> postService.updatePost(1L, postRequestBody, image, video));
+
     }
 
     @Test
     void test_updatePost_WhenPostsNotExists_ShouldThrowResourceNotFoundException() {
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+//        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            when(postRepository.findActiveAndUnarchivedPostsById(anyLong())).thenReturn(Optional.empty());
+        when(postRepository.findActiveAndUnarchivedPostsById(anyLong())).thenReturn(Optional.empty());
 
-            PostRequestBody postRequestBody = new PostRequestBody();
-            postRequestBody.setTitle("Updated Title");
+        PostRequestBody postRequestBody = new PostRequestBody();
+        postRequestBody.setTitle("Updated Title");
 
-            assertThrows(ResourceNotFoundException.class, () -> postService.updatePost(1L, postRequestBody, image, video));
-        }
+        assertThrows(ResourceNotFoundException.class, () -> postService.updatePost(1L, postRequestBody, image, video));
+
     }
 
     @Test
@@ -276,47 +286,44 @@ class PostServiceImplTest {
         when(categoryRepository.findById(anyLong())).thenReturn(Optional.ofNullable(testCategory));
         when(tagRepository.findByTagName(anyString())).thenReturn(testTags.stream().findFirst());
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
-            PostRequestBody postRequestBody = new PostRequestBody();
-            postRequestBody.setTitle("Updated Title");
-            postRequestBody.setCategoryId(1L);
-            postRequestBody.setTagNames(Collections.singleton("Java"));
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
+        PostRequestBody postRequestBody = new PostRequestBody();
+        postRequestBody.setTitle("Updated Title");
+        postRequestBody.setCategoryId(1L);
+        postRequestBody.setTagNames(Collections.singleton("Java"));
 
-            PostResponseBody response = postService.patchPost(1L, postRequestBody, image, video);
+        PostResponseBody response = postService.patchPost(1L, postRequestBody, image, video);
 
-            assertNotNull(response);
-            assertEquals("Updated Title", response.getTitle());
-            verify(postRepository, times(1)).save(any(Post.class));
-        }
+        assertNotNull(response);
+        assertEquals("Updated Title", response.getTitle());
+        verify(postRepository, times(1)).save(any(Post.class));
+
     }
 
     @Test
     void test_patchPost_WhenNotAuthorized_ShouldThrowUnAuthorizedException() {
         when(postRepository.findActiveAndUnarchivedPostsById(anyLong())).thenReturn(Optional.of(testPost));
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(null);
+        when(authUtil.getAuthenticatedUser()).thenReturn(null);
 
-            PostRequestBody postRequestBody = new PostRequestBody();
-            postRequestBody.setTitle("Updated Title");
+        PostRequestBody postRequestBody = new PostRequestBody();
+        postRequestBody.setTitle("Updated Title");
 
-            assertThrows(UnAuthorizedException.class, () -> postService.patchPost(1L, postRequestBody, image, video));
-        }
+        assertThrows(UnAuthorizedException.class, () -> postService.patchPost(1L, postRequestBody, image, video));
+
     }
 
     @Test
     void test_patchPost_WhenPostsNotExists_ShouldThrowResourceNotFoundException() {
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+//        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            when(postRepository.findActiveAndUnarchivedPostsById(anyLong())).thenReturn(Optional.empty());
+        when(postRepository.findActiveAndUnarchivedPostsById(anyLong())).thenReturn(Optional.empty());
 
-            PostRequestBody postRequestBody = new PostRequestBody();
-            postRequestBody.setTitle("Updated Title");
+        PostRequestBody postRequestBody = new PostRequestBody();
+        postRequestBody.setTitle("Updated Title");
 
-            assertThrows(ResourceNotFoundException.class, () -> postService.patchPost(1L, postRequestBody, image, video));
-        }
+        assertThrows(ResourceNotFoundException.class, () -> postService.patchPost(1L, postRequestBody, image, video));
+
     }
 
     @Test
@@ -325,14 +332,13 @@ class PostServiceImplTest {
         when(authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR")).thenReturn(true);
         when(postRepository.save(any(Post.class))).thenReturn(testPost);
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
-            PostResponseBody response = postService.archivePost(1L);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
+        PostResponseBody response = postService.archivePost(1L);
 
-            assertNotNull(response);
-            assertTrue(testPost.isArchived());
-            verify(postRepository, times(1)).save(any(Post.class));
-        }
+        assertNotNull(response);
+        assertTrue(testPost.isArchived());
+        verify(postRepository, times(1)).save(any(Post.class));
+
     }
 
     @Test
@@ -343,14 +349,13 @@ class PostServiceImplTest {
         when(authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR")).thenReturn(true);
         when(postRepository.save(any(Post.class))).thenReturn(testPost);
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
-            PostResponseBody response = postService.unarchivePost(1L);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
+        PostResponseBody response = postService.unarchivePost(1L);
 
-            assertNotNull(response);
-            assertFalse(testPost.isArchived());
-            verify(postRepository, times(1)).save(any(Post.class));
-        }
+        assertNotNull(response);
+        assertFalse(testPost.isArchived());
+        verify(postRepository, times(1)).save(any(Post.class));
+
     }
 
     @Test
@@ -359,13 +364,12 @@ class PostServiceImplTest {
 
         when(postRepository.findById(anyLong())).thenReturn(Optional.empty());
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+//        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            assertThrows(ResourceNotFoundException.class, () -> postService.unarchivePost(1L));
+        assertThrows(ResourceNotFoundException.class, () -> postService.unarchivePost(1L));
 
-            verify(postRepository, never()).save(any(Post.class));
-        }
+        verify(postRepository, never()).save(any(Post.class));
+
     }
 
     @Test
@@ -374,13 +378,12 @@ class PostServiceImplTest {
 
         when(postRepository.findById(anyLong())).thenReturn(Optional.of(testPost));
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+//        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            assertThrows(InvalidPostStateException.class, () -> postService.unarchivePost(1L));
+        assertThrows(InvalidPostStateException.class, () -> postService.unarchivePost(1L));
 
-            verify(postRepository, never()).save(any(Post.class));
-        }
+        verify(postRepository, never()).save(any(Post.class));
+
     }
 
     @Test
@@ -389,26 +392,24 @@ class PostServiceImplTest {
         when(authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR")).thenReturn(true);
         when(postRepository.findActiveAndArchivedPosts(any(Pageable.class))).thenReturn(page);
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            PageableResponse<PostResponseBody> response = postService.getArchivedPosts(0, 10, "postCreatedDate", "desc");
+        PageableResponse<PostResponseBody> response = postService.getArchivedPosts(0, 10, "postCreatedDate", "desc");
 
-            assertNotNull(response);
-            assertEquals(1, response.getContent().size());
-        }
+        assertNotNull(response);
+        assertEquals(1, response.getContent().size());
+
     }
 
     @Test
     void test_getArchivedPosts_WhenNotAuthorized_ShouldThrowUnAuthorizedException() {
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(null);
+        when(authUtil.getAuthenticatedUser()).thenReturn(null);
 
-            assertThrows(UnAuthorizedException.class, () -> postService.getArchivedPosts(0, 10, "postCreatedDate", "desc"));
+        assertThrows(UnAuthorizedException.class, () -> postService.getArchivedPosts(0, 10, "postCreatedDate", "desc"));
 
-            verify(postRepository, never()).delete(any(Post.class));
-        }
+        verify(postRepository, never()).delete(any(Post.class));
+
     }
 
     @Test
@@ -417,75 +418,71 @@ class PostServiceImplTest {
         when(authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR")).thenReturn(true);
         when(postRepository.save(any(Post.class))).thenReturn(testPost);
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
-            PostResponseBody response = postService.togglePostVisibility(1L, false);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
+        PostResponseBody response = postService.togglePostVisibility(1L, false);
 
-            assertNotNull(response);
-            assertFalse(testPost.isLive());
-            verify(postRepository, times(1)).save(any(Post.class));
-        }
+        assertNotNull(response);
+        assertFalse(testPost.isLive());
+        verify(postRepository, times(1)).save(any(Post.class));
+
     }
 
     @Test
     void test_togglePostVisibility_WhenNotAuthorized_ShouldThrowUnAuthorizedException() {
-        when(postRepository.findById(anyLong())).thenReturn(Optional.of(testPost));
+//        when(postRepository.findById(anyLong())).thenReturn(Optional.of(testPost));
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(null);
+        when(authUtil.getAuthenticatedUser()).thenReturn(null);
 
-            assertThrows(UnAuthorizedException.class, () -> postService.togglePostVisibility(1L, false));
+        assertThrows(UnAuthorizedException.class, () -> postService.togglePostVisibility(1L, false));
 
-            verify(postRepository, never()).save(any(Post.class));
-        }
+        verify(postRepository, never()).save(any(Post.class));
+
     }
 
     @Test
     void test_setAsMemberPost_WhenUserOwnsPost_ShouldMarkAsMemberPost() {
         when(postRepository.findActiveAndUnarchivedPostsById(anyLong())).thenReturn(Optional.of(testPost));
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            when(postRepository.save(any(Post.class))).thenReturn(testPost);
+        when(postRepository.save(any(Post.class))).thenReturn(testPost);
 
-            PostResponseBody response = postService.setAsMemberPost(1L);
+        PostResponseBody response = postService.toggleMemberPostVisibility(1L, true);
 
-            assertNotNull(response);
-            assertTrue(testPost.isMemberPost());
-            verify(postRepository, times(1)).save(any(Post.class));
-        }
+        assertNotNull(response);
+        assertTrue(testPost.isMemberPost());
+        verify(postRepository, times(1)).save(any(Post.class));
+
     }
 
     @Test
     void test_setAsMemberPost_WhenUserDoesNotOwnPost_ShouldThrowUnAuthorizedException() {
         User anotherUser = new User();
         anotherUser.setUserId(2L);
+        anotherUser.setEmail("anotherUser@github.com");
 
         testPost.setUser(anotherUser);
 
         when(postRepository.findActiveAndUnarchivedPostsById(anyLong())).thenReturn(Optional.of(testPost));
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            assertThrows(UnAuthorizedException.class, () -> postService.setAsMemberPost(1L));
+        assertThrows(UnAuthorizedException.class, () -> postService.toggleMemberPostVisibility(1L, true));
 
-            verify(postRepository, never()).save(any(Post.class));
-        }
+        verify(postRepository, never()).save(any(Post.class));
+
     }
 
     @Test
     void test_setAsMemberPost_WhenPostDoesNotExist_ShouldThrowResourceNotFoundException() {
         when(postRepository.findActiveAndUnarchivedPostsById(anyLong())).thenReturn(Optional.empty());
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            assertThrows(ResourceNotFoundException.class, () -> postService.setAsMemberPost(1L));
+        assertThrows(ResourceNotFoundException.class, () -> postService.toggleMemberPostVisibility(1L, true));
 
-            verify(postRepository, never()).save(any(Post.class));
-        }
+        verify(postRepository, never()).save(any(Post.class));
+
     }
 
 
@@ -494,37 +491,34 @@ class PostServiceImplTest {
         when(postRepository.findById(anyLong())).thenReturn(Optional.of(testPost));
         when(authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR")).thenReturn(true);
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
-            postService.deletePost(1L);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
+        postService.deletePost(1L);
 
-            verify(postRepository, times(1)).delete(any(Post.class));
-        }
+        verify(postRepository, times(1)).delete(any(Post.class));
+
     }
 
     @Test
     void test_deletePost_WhenAuthorizedAndPostDoesNotExists_ShouldThrowResourceNotFoundException() {
         when(postRepository.findById(anyLong())).thenReturn(Optional.empty());
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            assertThrows(ResourceNotFoundException.class, () -> postService.deletePost(1L));
+        assertThrows(ResourceNotFoundException.class, () -> postService.deletePost(1L));
 
-            verify(postRepository, never()).delete(any(Post.class));
-        }
+        verify(postRepository, never()).delete(any(Post.class));
+
     }
 
     @Test
     void test_deletePost_WhenNotAuthorized_ShouldThrowUnAuthorizedException() {
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(null);
+        when(authUtil.getAuthenticatedUser()).thenReturn(null);
 
-            assertThrows(UnAuthorizedException.class, () -> postService.deletePost(1L));
+        assertThrows(UnAuthorizedException.class, () -> postService.deletePost(1L));
 
-            verify(postRepository, never()).delete(any(Post.class));
-        }
+        verify(postRepository, never()).delete(any(Post.class));
+
     }
 
     @Test
@@ -534,19 +528,16 @@ class PostServiceImplTest {
         when(postRepository.findById(anyLong())).thenReturn(Optional.of(testPost));
         when(authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR")).thenReturn(true);
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            assertThrows(ResourceNotFoundException.class, () -> postService.deletePost(1L));
+        assertThrows(ResourceNotFoundException.class, () -> postService.deletePost(1L));
 
-            verify(postRepository, never()).delete(any(Post.class));
-        }
+        verify(postRepository, never()).delete(any(Post.class));
+
     }
 
     @Test
     void test_getPostsByUser_WhenUserExists_ReturnPageableResponse() {
-
-
 
         when(userRepository.findByUserName(anyString())).thenReturn(Optional.of(testUser));
         Page<Post> page = new PageImpl<>(Collections.singletonList(testPost));
@@ -640,31 +631,26 @@ class PostServiceImplTest {
         when(authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR")).thenReturn(true);
         when(postRepository.save(any(Post.class))).thenReturn(testPost);
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
+        PostResponseBody response = postService.deactivatePost(1L);
 
-            PostResponseBody response = postService.deactivatePost(1L);
+        assertNotNull(response);
+        assertTrue(testPost.isPostDeleted());
+        verify(postRepository, times(1)).save(any(Post.class));
 
-            assertNotNull(response);
-            assertTrue(testPost.isPostDeleted());
-            verify(postRepository, times(1)).save(any(Post.class));
-        }
     }
 
     @Test
     void test_deactivatePost_WhenUserNotAuthorized_ShouldThrowUnAuthorizedException() {
 
         when(postRepository.findById(anyLong())).thenReturn(Optional.of(testPost));
-        when(authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR")).thenReturn(false);
+        when(authUtil.getAuthenticatedUser()).thenReturn(null);
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(null);
+        assertThrows(UnAuthorizedException.class, () -> postService.deactivatePost(1L));
 
-            assertThrows(UnAuthorizedException.class, () -> postService.deactivatePost(1L));
+        verify(postRepository, never()).save(any(Post.class));
 
-            verify(postRepository, never()).save(any(Post.class));
-        }
     }
 
     @Test
@@ -684,16 +670,14 @@ class PostServiceImplTest {
         when(authenticationFacade.hasAnyRole("ROLE_ADMIN", "ROLE_MODERATOR")).thenReturn(true);
         when(postRepository.save(any(Post.class))).thenReturn(testPost);
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
+        PostResponseBody response = postService.activatePost(1L);
 
-            PostResponseBody response = postService.activatePost(1L);
+        assertNotNull(response);
+        assertFalse(testPost.isPostDeleted());
+        verify(postRepository, times(1)).save(any(Post.class));
 
-            assertNotNull(response);
-            assertFalse(testPost.isPostDeleted());
-            verify(postRepository, times(1)).save(any(Post.class));
-        }
     }
 
     @Test
@@ -704,18 +688,15 @@ class PostServiceImplTest {
 
         when(postRepository.findById(anyLong())).thenReturn(Optional.of(testPost));
 
-        try (MockedStatic<AuthUtil> authMock = mockStatic(AuthUtil.class)) {
-            authMock.when(AuthUtil::getAuthenticatedUser).thenReturn(testUser);
+        when(authUtil.getAuthenticatedUser()).thenReturn(authenticatedUserDTO);
 
-            PostResponseBody response = postService.activatePost(2L);
+        PostResponseBody response = postService.activatePost(2L);
 
-            assertNotNull(response);
-            assertTrue(testPost.isPostDeleted()); // Should still be deleted
+        assertNotNull(response);
+        assertTrue(testPost.isPostDeleted()); // Should still be deleted
 
-            verify(postRepository, times(1)).findById(anyLong());
-            verify(postRepository, never()).save(any(Post.class)); // Ensure post is NOT saved
-        }
+        verify(postRepository, times(1)).findById(anyLong());
+        verify(postRepository, never()).save(any(Post.class)); // Ensure post is NOT saved
+
     }
-
-
 }
