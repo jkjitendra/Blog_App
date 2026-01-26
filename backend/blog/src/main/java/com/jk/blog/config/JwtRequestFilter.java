@@ -51,13 +51,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             return;
         }
 
-//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//        // Allow OAuth2 authenticated users
-//        if (authentication instanceof OAuth2AuthenticationToken) {
-//            filterChain.doFilter(request, response);
-//            return;
-//        }
-
         final String authorizationHeader = request.getHeader("Authorization");
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
