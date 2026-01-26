@@ -4,7 +4,7 @@
 
 The **Blog App** is a full-stack web application that allows users to **create, read, update, and delete** blog posts with **user authentication, role-based access control (RBAC), real-time reactions, comments, and payment processing**. 
 
-This application integrates **third-party authentication (Google, Facebook, etc.), Single Sign-On (SSO), and Vault-based secret management** for enhanced security. Additionally, users can subscribe to premium content through **integrated payment processing**.
+This application integrates **third-party authentication (Google, GitHub, etc.), Single Sign-On (SSO), and Vault-based secret management** for enhanced security. Additionally, users can subscribe to premium content through **integrated payment processing**.
 
 ## 🚀 Features
 
@@ -12,7 +12,7 @@ This application integrates **third-party authentication (Google, Facebook, etc.
 - **User Authentication & Authorization**
   - JWT-based authentication
   - Role-Based Access Control (RBAC)
-  - OAuth2 authentication with Google, Facebook, etc.
+  - OAuth2 authentication with Google, GitHub, etc.
   - Single Sign-On (SSO) support
   - Password reset & email verification
 
@@ -49,7 +49,7 @@ This application integrates **third-party authentication (Google, Facebook, etc.
 - Payment history and invoices
 
 ### 🔑 3rd Party Authentication & SSO
-- **Google & Facebook authentication**
+- **Google & GitHub authentication**
 - **Single Sign-On (SSO)** integration for corporate users
 - Secure OAuth2-based login flow
 
@@ -80,7 +80,7 @@ This application integrates **third-party authentication (Google, Facebook, etc.
 - **Frontend:** React (TypeScript) + Tailwind CSS
 - **Backend:** Spring Boot REST API
 - **Database:** MySQL & MongoDB
-- **Authentication:** JWT, OAuth2 (Google, Facebook), SSO
+- **Authentication:** JWT, OAuth2 (Google, GitHub), SSO
 - **Payments:** Stripe/Razorpay integration
 - **Secret Management:** Vault integration
 
@@ -154,13 +154,13 @@ Run the backend:
 | `POST` | `/api/v1/auth/reset-password` | Reset password | ❌ Public |
 | `POST` | `/api/v1/auth/activate` | Activate user | ✅ Authenticated |
 | `POST` | `/api/v1/auth/sso/google` | Google Single Sign-On | ❌ Public |
-| `POST` | `/api/v1/auth/sso/facebook` | Facebook Single Sign-On | ❌ Public |
+| `POST` | `/api/v1/auth/sso/github` | GitHub Single Sign-On | ❌ Public |
 
 ### OAuth & SSO (`/api/v1/auth/oauth`)
 | Method | Endpoint | Description | Authentication |
 |--------|----------|-------------|---------------|
 | `GET` | `/api/v1/auth/oauth/google` | Google OAuth Login | ❌ Public |
-| `GET` | `/api/v1/auth/oauth/facebook` | Facebook OAuth Login | ❌ Public |
+| `GET` | `/api/v1/auth/oauth/github` | GitHub OAuth Login | ❌ Public |
 | `GET` | `/api/v1/auth/oauth/sso` | SSO Login | ❌ Public |
 
 ### User Management (`/api/v1/users`)
