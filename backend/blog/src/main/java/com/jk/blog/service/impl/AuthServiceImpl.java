@@ -42,19 +42,10 @@ public class AuthServiceImpl implements AuthService {
     private JwtUtil jwtUtil;
 
     @Autowired
-    private RefreshTokenService refreshTokenService;
-
-    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
     private ModelMapper modelMapper;
-
-    @Autowired
-    private PasswordResetTokenRepository passwordResetTokenRepository;
-
-    @Value("${otp.expiration-time}")
-    private Long otpExpirationTime;
 
     @Override
     @Transactional
